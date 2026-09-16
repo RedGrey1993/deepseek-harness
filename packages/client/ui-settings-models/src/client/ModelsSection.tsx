@@ -81,7 +81,7 @@ interface EditorTarget extends ProviderIdentity {
 /** Values that vary around the shared provider-editor rendering. */
 interface ProviderEditorRenderProps extends Pick<
   ProviderEditorProps,
-  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose'
+  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose' | 'onAuthorizationChanged'
 > {
   target: EditorTarget
 }
@@ -339,6 +339,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                   operations,
                   t,
                   readOnly: !state.writable,
+                  onAuthorizationChanged: () => { void controller.load() },
                   onClose: (changed) => { closeSetup(changed, target) },
                 })}
                 {renderSlot(
@@ -350,10 +351,10 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
             )
           }
           const open = !adding && editing?.provider === row.entry.provider
-          const credentialConfigured = row.credential?.configured === true
+          const isOAuth = row.entry.settingsNs === 'llm-pi-ai' && row.entry.provider === 'openai-codex' && row.apiKeyEnv === undefined
+          const credentialConfigured = isOAuth ? row.authorization?.configured === true : row.credential?.configured === true
           const credentialMissing = !credentialConfigured
-            && row.apiKeyEnv !== undefined
-            && row.credential?.configured === false
+            && (isOAuth || (row.apiKeyEnv !== undefined && row.credential?.configured === false))
           return (
             <li key={row.entry.provider} className={styles['rowCard']}>
               <div className={styles['rowHead']}>
@@ -370,8 +371,8 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                       <span
                         className={`${styles['credentialDot']} ${styles['credentialDotConfigured']}`}
                         role="img"
-                        aria-label={t('credentialConfigured')}
-                        title={t('credentialConfigured')}
+                        aria-label={t(isOAuth ? 'oauthConnected' : 'credentialConfigured')}
+                        title={t(isOAuth ? 'oauthConnected' : 'credentialConfigured')}
                       />
                     )
                     : credentialMissing
@@ -379,8 +380,8 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                         <span
                           className={`${styles['credentialDot']} ${styles['credentialDotMissing']}`}
                           role="img"
-                          aria-label={t('credentialMissing')}
-                          title={t('credentialMissing')}
+                          aria-label={t(isOAuth ? 'oauthDisconnected' : 'credentialMissing')}
+                          title={t(isOAuth ? 'oauthDisconnected' : 'credentialMissing')}
                         />
                       )
                       : null}
@@ -435,6 +436,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                   operations,
                   t,
                   readOnly: !state.writable,
+                  onAuthorizationChanged: () => { void controller.load() },
                   onClose: (changed) => { closeEditor(changed, target) },
                 })
                 : null}
@@ -475,6 +477,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                 operations={operations}
                 t={t}
                 readOnly={!state.writable}
+                onAuthorizationChanged={() => { void controller.load() }}
                 onClose={(changed) => { closeEditor(changed, addTarget) }}
               />
               {addRow === undefined

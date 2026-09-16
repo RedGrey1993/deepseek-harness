@@ -3,6 +3,7 @@ import { Context } from '@deepseek-ai/cordis'
 import Authorization from '@deepseek-ai/dsh-authorization'
 import type { AuthorizationSession } from '@deepseek-ai/dsh-authorization'
 import { credentialKey } from '@deepseek-ai/dsh-credentials'
+import { remoteMethods } from '@deepseek-ai/dsh-typert-protocol'
 import { brandString } from '@deepseek-ai/dsh-brand'
 import { MemoryCredentials } from '../../../credentials/credentials/tests/memory.ts'
 import { AuthorizationController } from '../src/authorization.ts'
@@ -34,6 +35,13 @@ async function frame(iterator: AsyncIterator<ProviderAuthorizationFrame>) {
 afterEach(async () => { await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose())) })
 
 describe('caller-private provider authorization', () => {
+  it('registers login as a Remote stream rather than a unary method', async () => {
+    const ctx = await boot(async () => {})
+    expect(remoteMethods(ctx.authorizationController)).toContainEqual({
+      method: 'login', mode: 'stream', invocation: { kind: 'direct' },
+    })
+  })
+
   it('reports missing services and refuses scoped record keys', async () => {
     const ctx = new Context()
     contexts.push(ctx)
@@ -75,9 +83,9 @@ describe('caller-private provider authorization', () => {
     const question = await frame(iterator)
     if (started.type !== 'started' || question.type !== 'prompt') throw new Error('Missing expected prompt')
     expect(question.prompt).toEqual({ kind: 'secret', message: 'Code', placeholder: 'Paste here' })
-    expect(() => ctx.authorizationController.answer(brandString<AuthorizationAttemptId>('foreign'), question.promptId, 'stolen')).toThrow()
+    expect(() => { ctx.authorizationController.answer(brandString<AuthorizationAttemptId>('foreign'), question.promptId, 'stolen') }).toThrow()
     ctx.authorizationController.answer(started.attemptId, question.promptId, 'copied-code')
-    expect(() => ctx.authorizationController.answer(started.attemptId, question.promptId, 'replay')).toThrow()
+    expect(() => { ctx.authorizationController.answer(started.attemptId, question.promptId, 'replay') }).toThrow()
     expect(await frame(iterator)).toEqual({ type: 'outcome', status: 'authorized' })
     await iterator.next()
     expect(answer).toBe('copied-code')
@@ -93,7 +101,7 @@ describe('caller-private provider authorization', () => {
     const question = await frame(iterator)
     if (started.type !== 'started' || question.type !== 'prompt') throw new Error('Missing expected prompt')
     expect(question.prompt).not.toHaveProperty('signal')
-    expect(() => ctx.authorizationController.answer(started.attemptId, question.promptId, 'invalid')).toThrow()
+    expect(() => { ctx.authorizationController.answer(started.attemptId, question.promptId, 'invalid') }).toThrow()
     ctx.authorizationController.answer(started.attemptId, question.promptId, 'device')
     expect(await frame(iterator)).toEqual({ type: 'outcome', status: 'authorized' })
     await iterator.next()
@@ -129,7 +137,7 @@ describe('caller-private provider authorization', () => {
     expect(stopped).toBe(true)
     expect(await ctx.authorizationController.describe('openai-codex')).toMatchObject({ inFlight: false })
     if (started.type !== 'started' || question.type !== 'prompt') throw new Error('Missing prompt')
-    expect(() => ctx.authorizationController.answer(started.attemptId, question.promptId, 'late')).toThrow()
+    expect(() => { ctx.authorizationController.answer(started.attemptId, question.promptId, 'late') }).toThrow()
   })
 
   it('refuses a concurrent attempt without cancelling the first', async () => {

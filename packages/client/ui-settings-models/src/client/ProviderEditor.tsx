@@ -31,6 +31,7 @@ import {
   DeepSeekModelsEditor, modelDrafts, validateDeepSeekModels,
 } from './DeepSeekModelsEditor.tsx'
 import { apiKeyFailure } from './apiKey.ts'
+import { ProviderAuthorization } from './ProviderAuthorization.tsx'
 import { EditorFooter } from './EditorFooter.tsx'
 import { ModelListEditor } from './ModelListEditor.tsx'
 import { deriveKeyRef, protocolChoices } from './store.ts'
@@ -86,6 +87,8 @@ export interface ProviderEditorProps {
   submitBusyLabelKey?: keyof typeof en
   /** Close the editor; `changed` reports whether an Apply committed. */
   onClose: (changed: boolean) => void
+  /** Refresh account badges after sign-in or sign-out. */
+  onAuthorizationChanged?: () => void
 }
 
 /** A user-section subtree as a plain draft object (absent → empty). */
@@ -174,6 +177,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   const disabled = props.readOnly || busy
   const layout = layoutOf(namespace.ns)
   const keyRef = refFor(schema, namespace, settingsPath, props.provider)
+  const codex = layout === 'pi-ai' && props.provider === 'openai-codex' && props.declared !== true
   // The same schema read the create card makes, so the choices offered here
   // and there cannot drift apart: both come from the adapter's own `Config`.
   // Only the pi-ai layout has a per-route protocol for the read to find, and
@@ -186,6 +190,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   useEffect(() => {
     let stale = false
     setKeyState(undefined)
+    if (codex) return
     // The key state is a placeholder hint, not a precondition for editing: a
     // refused describe leaves the card without the "already configured" hint.
     void operations.describeCredential(keyRef).then((described) => {
@@ -193,7 +198,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
       setKeyState(described)
     })
     return () => { stale = true }
-  }, [operations, keyRef])
+  }, [operations, keyRef, codex])
 
   const stringAt = (source: unknown, key: string): string | undefined => {
     const value = schema.getPath(source, [key])
@@ -360,7 +365,17 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     }
     return (
       <>
-        <div className={styles['field']}>
+        {codex ? (
+          <ProviderAuthorization
+            key={props.provider}
+            provider={props.provider}
+            operations={operations}
+            t={t}
+            readOnly={disabled}
+            overridden={stringAt(fallback, 'apiKeyEnv') !== undefined}
+            onChanged={() => { props.onAuthorizationChanged?.() }}
+          />
+        ) : <div className={styles['field']}>
           <span className={styles['fieldLabel']}>{t('keyInput')}</span>
           <input
             className={styles['input']}
@@ -376,7 +391,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
             onChange={(event) => { setKeyDraft(event.target.value) }}
           />
           {shownKeyFailure === undefined ? null : <p className={styles['error']}>{t(shownKeyFailure)}</p>}
-        </div>
+        </div>}
         {props.credentialOnly === true ? null : <details className={styles['customized']}>
           <summary className={styles['customizedSummary']}>{t('customized')}</summary>
           <div className={styles['customizedBody']}>

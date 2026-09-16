@@ -33,7 +33,10 @@ kind: "package-reference"
 
 -----
 
+`authorization` 通过调用方私有的 Remote 流提供已安装的 pi-ai 登录流程。浏览器只接收账号元数据、通知和问题回复凭证，不接收已存储的令牌。取消流会撤销登录尝试；撤销单个问题只清除该问题。退出登录删除所选 `llm-pi-ai` 凭据记录，不修改 settings。这些方法沿用其他配置方法的 Host、Origin 与认证检查。
+
 <a id="configuration"></a>
+
 ## 配置
 
 | 字段 | 默认值 | 含义 |

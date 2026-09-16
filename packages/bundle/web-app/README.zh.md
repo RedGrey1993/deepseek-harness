@@ -40,6 +40,8 @@ dsh --profile web --no-open --port 8080
 
 已保存的模型选择优先于组合默认值。两种协议共用 `deepseek-official` 与 `llm-deepseek` 设置，因此切换协议不改变模型选择或复制凭据。端点覆盖保持原值；设置卡片允许用户填写兼容的 API 地址。
 
+Web 组合挂载授权服务，使模型页能够运行已安装的 pi-ai Codex 登录流程。账号令牌保留在 Harness 凭据存储中。
+
 ### 配置
 
 大多数用户不需要设置这些；命令行 flag 会提供给下面四个设置——`--host`、`--port` 与 `--trusted-host` 来自本次调用，`--no-open` 仅对本次调用关闭浏览器交接：

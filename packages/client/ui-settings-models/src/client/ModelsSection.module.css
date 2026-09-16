@@ -701,3 +701,14 @@ select.input {
   line-height: 20px;
   text-align: center;
 }
+
+.oauthNotice {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.oauthUrl {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  user-select: text;
+}

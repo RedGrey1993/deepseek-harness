@@ -16,7 +16,7 @@ Keys are write-only. The page receives a redacted descriptor after saving, never
 
 Choose **Add provider** and pick a provider dsh ships with; the list shows provider ids such as `anthropic`, `openai`, `moonshotai` for Kimi, or `zai` for GLM. Enter its API key and save. The installed catalog supplies the endpoint, protocol, and model list.
 
-Providers that sign in with OAuth, such as Codex, are not supported here yet.
+For `openai-codex`, open the Host through localhost, choose **Sign in with ChatGPT**, then open the displayed authorization link and follow its instructions. The card displays a verification code or an input prompt when the provider requests one. After signing in, choose **Apply** to save the provider and select a Codex model. Closing the card or choosing **Cancel** cancels the active attempt. **Sign out** removes only the Harness-owned account credential. If the route already names `apiKeyEnv`, remove that explicit reference in `settings.yaml` before using account sign-in; it otherwise overrides the stored OAuth credential.
 
 ## Add a custom provider
 

@@ -165,6 +165,8 @@ type SettingsUpdateSource = 'update' | 'provider'
 
 `SettingsDocumentOpenValue` 确认 `settings/openSettingsDocument` 已准备好 provider 持有的文档，并将其交给原生文本编辑器。`AgentPresetDirectoryOpenValue` 报告已完成的原生交接，或在桌面打开不可用时返回解析后的用户 preset 目录。两项操作都不接受由浏览器选择的 Host 路径。
 
+`authorization` Remote 命名空间提供内置 pi-ai 账号登录。`ProviderAuthorizationState` 报告可用方法、凭据是否已存储以及是否有活动尝试，不暴露令牌。`ProviderAuthorizationFrame` 承载调用方私有的通知、问题、撤销和完成状态。`AuthorizationAttemptId` 与 `AuthorizationPromptId` 是回复待处理问题所需的不透明凭证。它们的传输声明由 settings-controller 包负责。
+
 <!-- BEGIN GENERATED cordis-surface (gen-cordis-catalog.ts) — do not edit between markers -->
 
 <a id="cordis-surface"></a>
@@ -172,6 +174,47 @@ type SettingsUpdateSource = 'update' | 'provider'
 ## Cordis API
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
+
+<a id="ctxauthorizationcontroller--authorizationcontroller"></a>
+
+### `ctx.authorizationController` — `AuthorizationController`
+
+Host service exposing built-in provider sign-in without exposing stored tokens.
+
+```ts cordis-catalog
+/**
+ * Describe sign-in methods and stored credential presence without reading a token.
+ * @param provider - installed pi-ai provider identifier, never a scoped record key.
+ * @returns safe credential metadata and available sign-in methods.
+ */
+@Remote async describe(provider: string): Promise<ProviderAuthorizationState>
+
+/**
+ * Run a sign-in whose private notices and prompts belong to this stream only.
+ * @param provider - installed pi-ai provider identifier.
+ * @param method - method id returned by describe.
+ * @param signal - closing the caller cancels sign-in and every pending question.
+ * @returns private interaction frames followed by the authorization outcome.
+ */
+@Remote({ mode: 'stream' }) async *login(provider: string, method: string, signal: AbortSignal): AsyncIterable<ProviderAuthorizationFrame>
+
+/**
+ * Answer one pending question; stale or foreign capabilities cannot answer it.
+ * @param attemptId - private capability from the started frame.
+ * @param promptId - identity from the matching prompt frame.
+ * @param value - typed value or the id of a declared select option.
+ */
+@Remote answer(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId, value: string): void
+
+/**
+ * Remove only the credential owned by the selected built-in provider.
+ * @param provider - installed pi-ai provider identifier.
+ * @returns after the credential has been removed.
+ */
+@Remote async logout(provider: string): Promise<void>
+```
+
+Source: [`packages/api/settings-controller/src/authorization.ts`](../../packages/api/settings-controller/src/authorization.ts)
 
 <a id="ctxsettings--settingsprovider-abstract-seam"></a>
 
