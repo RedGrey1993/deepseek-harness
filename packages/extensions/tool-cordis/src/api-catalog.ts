@@ -543,6 +543,36 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'authorizationController',
+    summary: 'Host service exposing built-in provider sign-in without exposing stored tokens.',
+    description: 'Host service exposing built-in provider sign-in without exposing stored tokens.',
+    methods: [
+      {
+        signature: '@Remote async describe(provider: string): Promise<ProviderAuthorizationState>',
+        description: 'Describe sign-in methods and stored credential presence without reading a token.',
+        parameters: [{ name: 'provider', description: 'installed pi-ai provider identifier, never a scoped record key.' }],
+        returns: 'safe credential metadata and available sign-in methods.',
+      },
+      {
+        signature: '@Remote({ mode: \'stream\' }) async *login(provider: string, method: string, signal: AbortSignal): AsyncIterable<ProviderAuthorizationFrame>',
+        description: 'Run a sign-in whose private notices and prompts belong to this stream only.',
+        parameters: [{ name: 'provider', description: 'installed pi-ai provider identifier.' }, { name: 'method', description: 'method id returned by describe.' }, { name: 'signal', description: 'closing the caller cancels sign-in and every pending question.' }],
+        returns: 'private interaction frames followed by the authorization outcome.',
+      },
+      {
+        signature: '@Remote answer(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId, value: string): void',
+        description: 'Answer one pending question; stale or foreign capabilities cannot answer it.',
+        parameters: [{ name: 'attemptId', description: 'private capability from the started frame.' }, { name: 'promptId', description: 'identity from the matching prompt frame.' }, { name: 'value', description: 'typed value or the id of a declared select option.' }],
+      },
+      {
+        signature: '@Remote async logout(provider: string): Promise<void>',
+        description: 'Remove only the credential owned by the selected built-in provider.',
+        parameters: [{ name: 'provider', description: 'installed pi-ai provider identifier.' }],
+        returns: 'after the credential has been removed.',
+      },
+    ],
+  },
+  {
     key: 'browserUse',
     summary: 'Owns one optional provider registration in the shared browser-use service.',
     description: 'Owns one optional provider registration in the shared browser-use service.',
@@ -4554,6 +4584,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
   },
   {
+    name: 'AuthorizationAttemptId',
+    declaration: 'export type AuthorizationAttemptId = Branded<\'AuthorizationAttemptId\'>;',
+  },
+  {
     name: 'AuthorizationEntry',
     declaration: 'export interface AuthorizationEntry {\n    key: CredentialKey;\n    label: string;\n    methods: readonly AuthorizationMethod[];\n    inFlight: boolean;\n}',
   },
@@ -4580,6 +4614,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AuthorizationPrompt',
     declaration: 'export type AuthorizationPrompt = {\n    signal?: AbortSignal;\n} & ({\n    kind: \'text\';\n    message: string;\n    placeholder?: string;\n} | {\n    kind: \'secret\';\n    message: string;\n    placeholder?: string;\n} | {\n    kind: \'select\';\n    message: string;\n    options: readonly AuthorizationPromptOption[];\n});',
+  },
+  {
+    name: 'AuthorizationPromptId',
+    declaration: 'export type AuthorizationPromptId = Branded<\'AuthorizationPromptId\'>;',
   },
   {
     name: 'AuthorizationPromptOption',
@@ -5984,6 +6022,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'PromptSectionOrderName',
     declaration: 'export type PromptSectionOrderName = keyof typeof SECTION_ORDERS;',
+  },
+  {
+    name: 'ProviderAuthorizationFrame',
+    declaration: 'export type ProviderAuthorizationFrame = {\n    readonly type: \'started\';\n    readonly attemptId: AuthorizationAttemptId;\n} | {\n    readonly type: \'notice\';\n    readonly message: string;\n    readonly url?: string;\n    readonly code?: string;\n} | {\n    readonly type: \'prompt\';\n    readonly promptId: AuthorizationPromptId;\n    readonly prompt: ProviderAuthorizationPrompt;\n} | {\n    readonly type: \'withdrawn\';\n    readonly promptId: AuthorizationPromptId;\n} | {\n    readonly type: \'outcome\';\n    readonly status: \'authorized\' | \'cancelled\';\n};',
+  },
+  {
+    name: 'ProviderAuthorizationPrompt',
+    declaration: 'export type ProviderAuthorizationPrompt = {\n    readonly kind: \'text\' | \'secret\';\n    readonly message: string;\n    readonly placeholder?: string;\n} | {\n    readonly kind: \'select\';\n    readonly message: string;\n    readonly options: readonly {\n        readonly id: string;\n        readonly label: string;\n        readonly description?: string;\n    }[];\n};',
+  },
+  {
+    name: 'ProviderAuthorizationState',
+    declaration: 'export interface ProviderAuthorizationState {\n    readonly available: boolean;\n    readonly configured: boolean;\n    readonly writable: boolean;\n    readonly inFlight: boolean;\n    readonly methods: readonly {\n        readonly id: string;\n        readonly label: string;\n    }[];\n}',
   },
   {
     name: 'ProviderRequestId',

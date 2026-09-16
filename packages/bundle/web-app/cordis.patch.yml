@@ -134,6 +134,9 @@
     - id: account-controller
       name: '@deepseek-ai/dsh-api-account-controller'
 
+    - id: authorization
+      name: '@deepseek-ai/dsh-authorization'
+
     - id: settings-controller
       name: '@deepseek-ai/dsh-api-settings-controller'
 

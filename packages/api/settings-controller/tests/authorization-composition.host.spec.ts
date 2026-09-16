@@ -63,7 +63,7 @@ it('loads sign-in from cordis.yml and persists only the provider grant', async (
         if (!modules.has(specifier)) throw new Error(`Unexpected Loader import: ${specifier}`)
         return modules.get(specifier)
       },
-    } as NonNullable<typeof ctx.loader.internal>
+    } as unknown as NonNullable<typeof ctx.loader.internal>
     await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
     await ctx.loader.await()
     const controller = ctx.authorizationController

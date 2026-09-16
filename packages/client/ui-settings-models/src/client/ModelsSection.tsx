@@ -109,7 +109,7 @@ interface CatalogDraft {
 /** Values that vary around the shared provider-editor rendering. */
 interface ProviderEditorRenderProps extends Pick<
   ProviderEditorProps,
-  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onClose'
+  'namespace' | 'schema' | 'operations' | 't' | 'readOnly' | 'onAuthorizationChanged' | 'onClose'
 > {
   target: EditorTarget
 }
@@ -416,6 +416,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                   operations,
                   t,
                   readOnly: !state.writable,
+                  onAuthorizationChanged: () => { void controller.load() },
                   onClose: (changed) => { closeSetup(changed, target) },
                 })}
                 {renderSlot(
@@ -427,10 +428,10 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
             )
           }
           const open = !addOpen && editing?.provider === row.entry.provider
-          const credentialConfigured = row.credential?.configured === true
+          const isOAuth = row.entry.settingsNs === 'llm-pi-ai' && row.entry.provider === 'openai-codex' && row.apiKeyEnv === undefined
+          const credentialConfigured = isOAuth ? row.authorization?.configured === true : row.credential?.configured === true
           const credentialMissing = !credentialConfigured
-            && row.apiKeyEnv !== undefined
-            && row.credential?.configured === false
+            && (isOAuth || (row.apiKeyEnv !== undefined && row.credential?.configured === false))
           return (
             <li key={row.entry.provider} className={styles['rowCard']}>
               <div className={styles['rowHead']}>
@@ -511,6 +512,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                   operations,
                   t,
                   readOnly: !state.writable,
+                  onAuthorizationChanged: () => { void controller.load() },
                   onClose: (changed) => { closeEditor(changed, target) },
                 })
                 : null}
@@ -599,6 +601,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                       operations={operations}
                       t={t}
                       readOnly={!state.writable}
+                      onAuthorizationChanged={() => { void controller.load() }}
                       onClose={(changed) => { closeEditor(changed, draft.target) }}
                       onBusyChange={setCatalogBusy}
                     />

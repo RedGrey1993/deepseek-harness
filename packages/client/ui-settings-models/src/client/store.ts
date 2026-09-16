@@ -9,7 +9,7 @@
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {
-  CredentialInfo, LlmConfigurableProvider, LlmProviderInfo, SettingsNamespaceView,
+  CredentialInfo, LlmConfigurableProvider, LlmProviderInfo, ProviderAuthorizationState, SettingsNamespaceView,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -90,6 +90,8 @@ export interface ProviderRow {
    * own derivation rule.
    */
   derivedCredential?: CredentialInfo
+  /** Safe account metadata for the built-in Codex route. */
+  authorization?: ProviderAuthorizationState
 }
 
 /** Page snapshot. */
@@ -234,6 +236,12 @@ export class ModelsSettingsStore {
       if (response.ok) credentials = response.value
       else credentialError = response.error.message
     }
+    const codex = rows.find(row => row.entry.settingsNs === 'llm-pi-ai' && row.entry.provider === 'openai-codex')
+    if (codex !== undefined && this.ctx.remote.$host.isLoopback) {
+      const response = await this.ctx.remote.authorization.describe('openai-codex')
+      if (response.ok) codex.authorization = response.value
+      else credentialError ??= response.error.message
+    }
     if (generation !== this.generation) return
     this.store.update((s) => {
       s.status = 'ready'
@@ -277,7 +285,12 @@ export class ModelsSettingsStore {
 export function providerUsable(row: ProviderRow): boolean {
   if (!row.entry.active) return false
   if (row.entry.provider === 'deepseek-account') return row.accountAvailable === true
-  if (row.apiKeyEnv === undefined) return true
+  if (row.apiKeyEnv === undefined) {
+    if (row.entry.settingsNs === 'llm-pi-ai' && row.entry.provider === 'openai-codex') {
+      return row.authorization?.configured === true
+    }
+    return true
+  }
   return row.credential?.configured === true
 }
 
