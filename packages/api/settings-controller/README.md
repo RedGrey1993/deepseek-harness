@@ -23,7 +23,7 @@ English | [中文](README.zh.md)
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount this package as a Loader entry in a profile that serves browser configuration. The entry registers both namespaces independently of their providers so a missing provider produces a named configuration error at invocation. Its generated descriptors enter the strict Typert registry, while the settings and credential Definitions remain plain Cordis Services with no wire obligations of their own.
+Mount this package as a Loader entry in a profile that serves browser configuration. The entry registers the three namespaces independently of their providers so a missing provider produces a named configuration error at invocation. Its generated descriptors enter the strict Typert registry, while the settings and credential Definitions remain plain Cordis Services with no wire obligations of their own.
 
 `describe(refs)` answers one map keyed by the requested names, so a settings page describing every reference its rows carry settles those rows together. It accepts at most 64 names per call, reports an invalid name or empty write value as `bad-request`, and copies each answer field by field — a provider returning more than `CredentialInfo` declares cannot widen what crosses. Valid `set(ref, value)` and `unset(ref)` calls report a provider refusal as `credential-rejected`, carrying the provider's message with only the reference in its details. Secret values cross in this direction only: no method here returns one.
 
@@ -33,7 +33,10 @@ Mount this package as a Loader entry in a profile that serves browser configurat
 
 -----
 
+`authorization` exposes the installed pi-ai sign-in flows through a caller-private Remote stream. The browser receives account metadata, notices, and prompt capabilities, never stored tokens. Stream cancellation withdraws the attempt; a prompt withdrawal only clears that prompt. Sign-out deletes the selected `llm-pi-ai` credential record without changing settings. These methods use the same authenticated Host and Origin checks as the other configuration methods.
+
 <a id="configuration"></a>
+
 ## Configuration
 
 | Field | Default | Meaning |

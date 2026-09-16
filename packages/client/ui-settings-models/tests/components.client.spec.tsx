@@ -240,7 +240,7 @@ const contexts = new WeakMap<object, PageContext>()
 function ctxWith(face: object): PageContext {
   const existing = contexts.get(face)
   if (existing !== undefined) return existing
-  const ctx = Object.assign(new Context(), { remote: { ...face,
+  const ctx = Object.assign(new Context(), { remote: { $host: { isLoopback: false }, ...face,
     session: { initializeDefaultModel: async () => ({ ok: true, value: undefined }) },
   } })
   contexts.set(face, ctx)

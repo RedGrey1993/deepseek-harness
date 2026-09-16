@@ -1,8 +1,8 @@
 /**
  * Host Remote owner for the configuration surfaces over the settings-domain
- * seams. Two namespaces: `settings`, the redacted reads and writes of
- * `ctx.settings`, owned by the class below; and `credentials`, mounted from
- * here as its own plugin.
+ * seams. The class below owns redacted `settings` reads and writes; its
+ * mounted `credentials` and `authorization` plugins own secret writes and
+ * caller-private account sign-in.
  *
  * @module @deepseek-ai/dsh-api-settings-controller
  */

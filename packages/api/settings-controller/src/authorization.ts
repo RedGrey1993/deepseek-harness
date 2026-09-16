@@ -40,7 +40,7 @@ export class AuthorizationController extends TypertRemoteService {
     ctx.effect(() => async () => {
       this.lifetime.abort()
       for (const attempt of this.attempts.values()) attempt.controller.abort()
-      await Promise.all([...this.attempts.values()].map(attempt => attempt.done))
+      await Promise.all([...this.attempts.values()].flatMap(attempt => attempt.done === undefined ? [] : [attempt.done]))
     }, 'authorization-controller.attempts')
   }
 
@@ -72,7 +72,7 @@ export class AuthorizationController extends TypertRemoteService {
    * @param signal - closing the caller cancels sign-in and every pending question.
    * @returns private interaction frames followed by the authorization outcome.
    */
-  @Remote
+  @Remote({ mode: 'stream' })
   async *login(provider: string, method: string, signal: AbortSignal): AsyncIterable<ProviderAuthorizationFrame> {
     const key = providerKey(provider)
     const authorization = this.authorization()
@@ -84,8 +84,7 @@ export class AuthorizationController extends TypertRemoteService {
     const attempt: Attempt = { controller, prompts: new Map() }
     const frames: ProviderAuthorizationFrame[] = []
     let wake: (() => void) | undefined
-    let finished = false
-    let failure: unknown
+    const completion: { finished: boolean; failure?: unknown } = { finished: false }
     const enqueue = (frame: ProviderAuthorizationFrame): void => {
       if (lifetime.aborted) return
       frames.push(frame)
@@ -100,25 +99,25 @@ export class AuthorizationController extends TypertRemoteService {
     const running = authorization.begin({
       key, method, signal: lifetime,
       interaction: {
-        notify: notice => enqueue({ type: 'notice', message: notice.message,
+        notify: (notice) => { enqueue({ type: 'notice', message: notice.message,
           ...notice.url === undefined ? {} : { url: notice.url },
-          ...notice.code === undefined ? {} : { code: notice.code } }),
+          ...notice.code === undefined ? {} : { code: notice.code } }) },
         prompt: prompt => this.prompt(attempt, prompt, lifetime, enqueue),
       },
-    }).then(outcome => enqueue({ type: 'outcome', status: outcome.status }), (error: unknown) => {
-      failure = error
-    }).finally(() => { finished = true; wake?.() })
+    }).then((outcome) => { enqueue({ type: 'outcome', status: outcome.status }) }, (error: unknown) => {
+      completion.failure = error
+    }).finally(() => { completion.finished = true; wake?.() })
     attempt.done = running
     try {
       yield { type: 'started', attemptId: id }
       while (!lifetime.aborted) {
         const frame = frames.shift()
         if (frame !== undefined) { yield frame; continue }
-        if (finished) break
+        if (completion.finished) break
         await new Promise<void>((resolve) => { wake = resolve })
         wake = undefined
       }
-      if (failure !== undefined) throw rejected(provider, 'Sign-in failed; retry authorization', failure)
+      if (completion.failure !== undefined) throw rejected(provider, 'Sign-in failed; retry authorization', completion.failure)
     } finally {
       controller.abort()
       lifetime.removeEventListener('abort', cancel)

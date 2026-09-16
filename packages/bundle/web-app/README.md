@@ -44,6 +44,8 @@ After startup you see a `dsh web:` line whose root URL carries a fresh process t
 
 Saved model selections override the composition default. The settings card accepts a Messages-compatible API address and a credential reference.
 
+The Web composition mounts the authorization service so Models can run the installed pi-ai Codex sign-in flow. Account tokens remain in the Harness credential store.
+
 ### Configuration
 
 `--host` and `--port` configure the listener; `--public-url` names the advertised public HTTP(S) root the GUI is reached at behind a prefix-stripping proxy, and `--trusted-host` adds further accepted authorities. All are described under [Listening, trust, and public deployments](#public-deployments):

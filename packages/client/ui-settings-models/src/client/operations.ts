@@ -8,6 +8,7 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {
   CredentialInfo, LlmDiscoveredModel, LlmModelDiscoveryRequest,
+  ProviderAuthorizationState, ProviderAuthorizationFrame, AuthorizationAttemptId, AuthorizationPromptId,
   SettingsNamespaceView, SettingsPathOpView,
 } from '@deepseek-ai/dsh-api-remotes/client'
 
@@ -32,6 +33,17 @@ export type ModelDiscoveryOutcome =
 
 /** The Host operations the Models page and its cards invoke. */
 export interface ModelsOperations {
+  /** Whether this browser may manage Host account credentials. */
+  readonly canAuthorize: boolean
+  /** Read the stored account state without returning tokens. */
+  describeAuthorization(provider: string): Promise<ProviderAuthorizationState>
+  /** Run one sign-in; cancellation belongs to the initiating card. */
+  loginAuthorization(provider: string, method: string, signal: AbortSignal,
+    receive: (frame: ProviderAuthorizationFrame) => void): Promise<void>
+  /** Answer the current prompt using its attempt-specific capability. */
+  answerAuthorization(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId, value: string): Promise<void>
+  /** Remove the Harness-owned account credential. */
+  logoutAuthorization(provider: string): Promise<void>
   /**
    * Read one credential reference's state.
    * @param ref - credential reference name.
@@ -81,6 +93,23 @@ export interface ModelsOperations {
  */
 export function createModelsOperations(ctx: ClientContext): ModelsOperations {
   return {
+    canAuthorize: ctx.remote.$host.isLoopback,
+    describeAuthorization: async (provider) => {
+      const result = await ctx.remote.authorization.describe(provider)
+      if (!result.ok) throw result.error
+      return result.value
+    },
+    loginAuthorization: async (provider, method, signal, receive) => {
+      for await (const frame of ctx.remote.authorization.login(provider, method, signal)) receive(frame)
+    },
+    answerAuthorization: async (attemptId, promptId, value) => {
+      const result = await ctx.remote.authorization.answer(attemptId, promptId, value)
+      if (!result.ok) throw result.error
+    },
+    logoutAuthorization: async (provider) => {
+      const result = await ctx.remote.authorization.logout(provider)
+      if (!result.ok) throw result.error
+    },
     describeCredential: async (ref) => {
       const response = await ctx.remote.credentials.describe([ref])
       return response.ok ? response.value[ref] : undefined
