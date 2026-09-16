@@ -7,8 +7,12 @@
  * @module @deepseek-ai/dsh-api-settings-controller/types
  */
 
+import type { Branded } from '@deepseek-ai/dsh-brand'
+
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
+    /** A provider authorization refusal; no credentials or prompt answers are returned. */
+    'authorization/rejected': { readonly provider: string }
     /**
      * Every seam refusal that is not a stale write: an unregistered or malformed
      * namespace, a read-only provider, schema validation, storage.
@@ -37,3 +41,38 @@ export interface SettingsDocumentOpenValue {
 export type AgentPresetDirectoryOpenValue =
   | { readonly opened: true }
   | { readonly opened: false; readonly path: string }
+
+/** Unpredictable capability identifying the browser that started one sign-in. */
+export type AuthorizationAttemptId = Branded<'AuthorizationAttemptId'>
+/** Identity of one pending question in an authorization attempt. */
+export type AuthorizationPromptId = Branded<'AuthorizationPromptId'>
+
+/** Public sign-in availability and credential presence for one built-in provider. */
+export interface ProviderAuthorizationState {
+  readonly available: boolean
+  readonly configured: boolean
+  readonly writable: boolean
+  readonly inFlight: boolean
+  readonly methods: readonly { readonly id: string; readonly label: string }[]
+}
+
+/** A browser question, with host-only cancellation signals removed. */
+export type ProviderAuthorizationPrompt =
+  | { readonly kind: 'text' | 'secret'; readonly message: string; readonly placeholder?: string }
+  | {
+    readonly kind: 'select'
+    readonly message: string
+    readonly options: readonly {
+      readonly id: string
+      readonly label: string
+      readonly description?: string
+    }[]
+  }
+
+/** Frames delivered only to the caller that starts sign-in. */
+export type ProviderAuthorizationFrame =
+  | { readonly type: 'started'; readonly attemptId: AuthorizationAttemptId }
+  | { readonly type: 'notice'; readonly message: string; readonly url?: string; readonly code?: string }
+  | { readonly type: 'prompt'; readonly promptId: AuthorizationPromptId; readonly prompt: ProviderAuthorizationPrompt }
+  | { readonly type: 'withdrawn'; readonly promptId: AuthorizationPromptId }
+  | { readonly type: 'outcome'; readonly status: 'authorized' | 'cancelled' }

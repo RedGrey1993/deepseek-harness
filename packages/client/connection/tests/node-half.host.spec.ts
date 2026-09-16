@@ -592,6 +592,7 @@ describe('connection node half over a real HTTP server', () => {
     const { port, close } = await serve(routes)
     try {
       const methods = [
+        'authorization/describe', 'authorization/login', 'authorization/answer', 'authorization/logout',
         'settings/openSettingsDocument',
         'session/openWorkspacePath',
         'llm/discoverModels', 'skills/list',
