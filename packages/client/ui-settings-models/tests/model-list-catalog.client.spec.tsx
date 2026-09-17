@@ -10,6 +10,11 @@ afterEach(cleanup)
 
 function operations(discoverModels: ModelsOperations['discoverModels']): ModelsOperations {
   return {
+    canAuthorize: false,
+    describeAuthorization: vi.fn<ModelsOperations['describeAuthorization']>(),
+    loginAuthorization: vi.fn<ModelsOperations['loginAuthorization']>(),
+    answerAuthorization: vi.fn<ModelsOperations['answerAuthorization']>(),
+    logoutAuthorization: vi.fn<ModelsOperations['logoutAuthorization']>(),
     discoverModels,
     describeCredential: vi.fn(),
     storeCredential: vi.fn(),
