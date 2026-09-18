@@ -28,7 +28,7 @@ export function apply(ctx: Context, config: { marker: string; events: string }):
   const exit = ctx.get('appExit')
   if (ready === undefined || exit === undefined) throw new Error('source-launch fixture requires the dsh launcher')
   ctx.effect(() => ready.onReady(() => {
-    void run().then(() => exit(0), (error: unknown) => {
+    void run().then(() => { exit(0) }, (error: unknown) => {
       process.stderr.write(`${String(error)}\n`)
       exit(1)
     })
