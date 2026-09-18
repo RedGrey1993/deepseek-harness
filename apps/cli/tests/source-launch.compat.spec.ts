@@ -9,7 +9,8 @@ import { describe, expect, it } from 'vitest'
  * Keyless smoke for SOURCE `dsh` execution: run `apps/cli/src/bin.ts`
  * with the exact production runtime vector (`node --import tsx/esm`, the
  * vector the root `dsh` script invokes directly). Source-path resolution must
- * keep Loader plugins and their imported service APIs in one module graph. The Node compatibility matrix runs this
+ * keep Loader plugins and their imported service APIs in one module graph.
+ * The Node compatibility matrix runs this
  * WHOLE file, so a Node release changing module hooks or TypeScript handling
  * breaks this gate instead of every developer's `pnpm dsh`; the built-bin
  * suite covers the published `lib/` entry, not this source chain.
@@ -72,16 +73,15 @@ describe('dsh SOURCE launcher (node --import tsx/esm)', () => {
       expect(result.timedOut, result.stderr).toBe(false)
       expect(result.signal, result.stderr).toBeUndefined()
       expect(result.exitCode, result.stderr).toBe(0)
-      expect(await readFile(marker, 'utf8')).toBe('tool executed\n')
       const recorded: unknown = JSON.parse(await readFile(events, 'utf8'))
-      expect(recorded).toEqual(expect.arrayContaining([
-        expect.objectContaining({ type: 'tool/call', data: expect.objectContaining({ name: 'write_marker' }) }),
-        expect.objectContaining({ type: 'tool/result' }),
-        expect.objectContaining({ type: 'turn/end', data: expect.objectContaining({ reason: { kind: 'completed' } }) }),
-      ]))
+      expect(recorded).toMatchObject([
+        { type: 'tool/call', data: { name: 'write_marker' } },
+        { type: 'tool/result' },
+        { type: 'turn/end', data: { reason: { kind: 'completed' } } },
+      ])
+      expect(await readFile(marker, 'utf8')).toBe('tool executed\n')
     } finally {
       await rm(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
     }
   }, 75_000)
-
 })
