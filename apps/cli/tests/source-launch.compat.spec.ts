@@ -72,16 +72,15 @@ describe('dsh SOURCE launcher (node --import tsx/esm)', () => {
       expect(result.timedOut, result.stderr).toBe(false)
       expect(result.signal, result.stderr).toBeUndefined()
       expect(result.exitCode, result.stderr).toBe(0)
-      expect(await readFile(marker, 'utf8')).toBe('tool executed\n')
       const recorded: unknown = JSON.parse(await readFile(events, 'utf8'))
-      expect(recorded).toEqual(expect.arrayContaining([
-        expect.objectContaining({ type: 'tool/call', data: expect.objectContaining({ name: 'write_marker' }) }),
-        expect.objectContaining({ type: 'tool/result' }),
-        expect.objectContaining({ type: 'turn/end', data: expect.objectContaining({ reason: { kind: 'completed' } }) }),
-      ]))
+      expect(recorded).toMatchObject([
+        { type: 'tool/call', data: { name: 'write_marker' } },
+        { type: 'tool/result' },
+        { type: 'turn/end', data: { reason: { kind: 'completed' } } },
+      ])
+      expect(await readFile(marker, 'utf8')).toBe('tool executed\n')
     } finally {
       await rm(home, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
     }
   }, 75_000)
-
 })
