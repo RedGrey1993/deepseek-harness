@@ -476,19 +476,20 @@ function resolveModuleFallbackEntries(
   declarers: ReadonlyMap<string, string>
   versions: ReadonlyMap<string, string | undefined>
 } {
-  const appManifest = readModuleFallbackManifest(installAnchor)
+  const canonicalAnchor = join(realModuleDirectory(dirname(installAnchor)), basename(installAnchor))
+  const appManifest = readModuleFallbackManifest(canonicalAnchor)
   const links = new Map<string, string>()
   const declarers = new Map<string, string>()
   const versions = new Map<string, string | undefined>()
   /* v8 ignore next -- a real app manifest always declares its name */
   if (appManifest.name !== undefined) {
-    links.set(appManifest.name, dirname(installAnchor))
-    declarers.set(appManifest.name, installAnchor)
+    links.set(appManifest.name, dirname(canonicalAnchor))
+    declarers.set(appManifest.name, canonicalAnchor)
     versions.set(appManifest.name, appManifest.version)
   }
   // BFS over the resolvable dependency graph; the visited set is the link
   // map itself (first resolution wins, matching Node's own nearest-wins).
-  const queue: { anchor: string; manifest: ProfileManifest }[] = [{ anchor: installAnchor, manifest: appManifest }]
+  const queue: { anchor: string; manifest: ProfileManifest }[] = [{ anchor: canonicalAnchor, manifest: appManifest }]
   for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
     // Peer dependencies participate: Service Definition packages (dsh-subprocess,
     // dsh-compaction, ...) are peers of their implementations, never plain
@@ -502,7 +503,7 @@ function resolveModuleFallbackEntries(
       if (dir === undefined) continue
       links.set(dep, dir)
       declarers.set(dep, next.anchor)
-      const manifestPath = join(dir, 'package.json')
+      const manifestPath = join(realModuleDirectory(dir), 'package.json')
       const manifest = readModuleFallbackManifest(manifestPath)
       versions.set(dep, manifest.version)
       queue.push({ anchor: manifestPath, manifest })
@@ -624,6 +625,8 @@ function installedProfilePackageNames(profile: Profile): string[] {
 
 /**
  * Compute a profile resolution generation without materializing links or proxies.
+ * Dependency lookup and imports share real declaring-package paths, including
+ * workspace packages reached through node_modules symlinks.
  * @param options - installation anchor, profile, and optional Harness home.
  * @returns the complete immutable generation.
  */
@@ -702,7 +705,7 @@ function dependencyClosure(
         visited.add(dep)
         links.set(dep, dir)
         declarers?.set(dep, next.anchor)
-        const manifestPath = join(dir, 'package.json')
+        const manifestPath = join(realModuleDirectory(dir), 'package.json')
         const dependencyManifest = readModuleFallbackManifest(manifestPath)
         versions?.set(dep, dependencyManifest.version)
         queue.push({ anchor: manifestPath, manifest: dependencyManifest })

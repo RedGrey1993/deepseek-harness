@@ -174,6 +174,39 @@ async function generationOf(f: ReturnType<typeof fixture>): Promise<ProfileResol
 }
 
 describe('profile resolution generation', { concurrent: false }, () => {
+  it.each(['installation', 'bundle'] as const)('resolves %s linked dependencies from their real declaring package', async (origin) => {
+    const f = fixture('linked-owner')
+    const target = join(f.root, 'workspace', 'packages', 'owner')
+    const realDependency = join(f.root, 'workspace', 'node_modules', 'linked-dependency')
+    const ownerManifest = pkg(target, 'linked-owner', 2, { 'linked-dependency': '*' })
+    pkg(realDependency, 'linked-dependency', 22)
+    let linkedOwner = f.installed
+    let aliasParent = dirname(f.installAnchor)
+    rmSync(f.installed, { recursive: true })
+    if (origin === 'bundle') {
+      pkg(dirname(f.installAnchor), 'test-app', 0)
+      aliasParent = join(f.root, 'bundle')
+      pkg(aliasParent, 'test-bundle', 3, { 'linked-owner': '*' })
+      linkedOwner = join(aliasParent, 'node_modules', 'linked-owner')
+      f.profile.layers.push({
+        packageName: 'test-bundle', packageDir: aliasParent,
+        patchPath: join(aliasParent, 'cordis.patch.yml'), patches: [],
+      })
+    }
+    pkg(join(aliasParent, 'node_modules', 'linked-dependency'), 'linked-dependency', 11)
+    mkdirSync(dirname(linkedOwner), { recursive: true })
+    symlinkSync(target, linkedOwner, process.platform === 'win32' ? 'junction' : 'dir')
+
+    const generation = await generationOf(f)
+    expect(generation.entries.find(entry => entry.name === 'linked-dependency')).toMatchObject({
+      packageDir: realDependency, declarer: ownerManifest, version: '22.0.0', scope: origin === 'bundle' ? 'profile' : 'installation',
+    })
+    registrations.push(installProfileResolution(generation))
+    const parent = join(f.profile.dir, 'entry.cjs')
+    expect(createRequire(parent)('linked-dependency')).toEqual({ marker: 22 })
+    expect(await importFrom('linked-dependency', pathToFileURL(parent).href)).toMatchObject({ marker: 22 })
+  })
+
   it('computes the old fallback graph without materializing it', async () => {
     const f = fixture()
     const generation = await generationOf(f)
