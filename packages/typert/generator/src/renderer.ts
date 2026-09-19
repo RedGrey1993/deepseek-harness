@@ -95,7 +95,9 @@ export class TypeGraphRenderer {
           ? this.parameterNames.get(node.target.parameter) ?? node.name
           : node.target.kind === 'declaration'
             ? references?.get(node.target.symbol) ?? node.name
-            : node.name
+            : node.target.kind === 'external' && references !== undefined
+              ? `import(${JSON.stringify(node.target.module + (node.target.subpath === '.' ? '' : node.target.subpath.slice(1)))}).${node.target.name}`
+              : node.name
         return node.arguments.length === 0
           ? name
           : `${name}<${node.arguments.map(argument => this.renderType(argument, references)).join(', ')}>`

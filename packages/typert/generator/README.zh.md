@@ -47,6 +47,8 @@ files:
 
 静态消费方直接针对工作区的 `tsconfig.host.json` 与 `tsconfig.client.json` 聚合配置调用 `WorkspaceAnalyzer`，选择 face 与包子集，并在不生成或加载运行时产物的前提下读取生成的 `FaceModel` 与类型图。`analyzeInBatches()` 通过有界的编译器程序处理大批量包选择，模型形态保持一致；`discoverPackages()` 无需构建类型检查程序即可找出参与贡献的包。
 
+独立插件工作区将贡献包放在 `packages/` 下，并在根聚合配置中引用各包的编译侧配置。从已安装的 `@deepseek-ai/dsh-typert-protocol` 包导入的 Remote 标记按声明归属识别，包括重导出；其他来源的同名装饰器不贡献 Remote 方法。生成的 Remote 声明通过显式 import 类型保留已安装依赖中的业务类型及作者使用的导入别名，不会留下未绑定的类型名称。
+
 ### 在 tsdown 构建中运行生成
 
 包的 `./tsdown` 子路径为根 tsdown 配置提供 `typertPlugin()`：它在打包前转换 TypeScript 依赖中的标准装饰器，并在包输出根目录生成模型驱动的 face 产物。`package` 模式只生成当前打包的包；`workspace` 模式对每个显式贡献方各生成一次。
