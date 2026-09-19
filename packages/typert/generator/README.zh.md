@@ -49,6 +49,8 @@ files:
 
 JSON、YAML、SVG、PNG、JPEG 和 WebP 资源导出不提供 TypeScript 声明，因此不进入 API 模型。JavaScript 或 TypeScript 导出源文件缺失时仍报错。
 
+独立插件工作区将贡献包放在 `packages/` 下，并在根聚合配置中引用各包的编译侧配置。从已安装的 `@deepseek-ai/dsh-typert-protocol` 包导入的 Remote 标记按声明归属识别，包括重导出；其他来源的同名装饰器不贡献 Remote 方法。生成的 Remote 声明通过显式 import 类型保留已安装依赖中的业务类型及作者使用的导入别名，不会留下未绑定的类型名称。
+
 ### 在 tsdown 构建中运行生成
 
 包的 `./tsdown` 子路径为根 tsdown 配置提供 `typertPlugin()`：它在打包前转换 TypeScript 依赖中的标准装饰器，并在包输出根目录生成模型驱动的 face 产物。`package` 模式只生成当前打包的包；`workspace` 模式对每个显式贡献方各生成一次。
