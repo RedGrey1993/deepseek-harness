@@ -73,6 +73,9 @@ All settings are optional. The defaults start condensing at 80% of the routed mo
 | `maxOverflowRetries` | `1` | Maximum retries after a confirmed context-window overflow; `0` disables recovery only. |
 | `modelPolicies` | `[]` | Exact `{ provider, model, ...partialPolicy }` overrides for individual model routes. |
 | `auto` | `true` | Enable automatic condensation and overflow recovery; set `false` for manual-only operation. |
+| `summaryInstruction` | built-in coding directive | Non-empty replacement for the final summarizer message; does not change model routing, retention or retry policy. |
+
+A configured directive is stored as `compaction/summary.summaryInstruction` with the resulting checkpoint so a later preset edit does not erase the auxiliary request's instruction.
 
 Misconfiguration fails fast: an unknown setting, a duplicate per-model override, both retention forms together, or a ratio retention that is not below the threshold all reject the plugin at load. An absolute `retainTokens` budget — top-level or per-model — that is not below its threshold fails when that model is first used, because the comparison needs the model's context size.
 
@@ -183,7 +186,7 @@ Replacing rather than append-only. Each checkpoint invalidates reuse from the fi
 
 #### What the model sees
 
-The summarization model receives the conversation replayed verbatim — the same system prompt, tool schemas, and messages the last routed request sent for the shadowed region — followed by one final user message: the compaction instruction below. The conversation model never sees this private request or its reasoning; only returned text is stored.
+The summarization model receives the conversation replayed verbatim — the same system prompt, tool schemas, and messages the last routed request sent for the shadowed region — followed by one final user message: `summaryInstruction` when configured, otherwise the compaction instruction below. The conversation model never sees this private request or its reasoning; only returned text is stored. Changing the directive replaces only this final message, not the replay prefix or model-selection policy.
 
 ##### Compaction instruction (final user message)
 

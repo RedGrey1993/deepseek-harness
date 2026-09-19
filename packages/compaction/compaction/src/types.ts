@@ -49,6 +49,8 @@ declare module '@deepseek-ai/dsh-session/types' {
       model: string
       /** The generation cap the summarize call sent, when one applied. */
       maxTokens?: number
+      /** Custom final summarizer directive, when configured; preserves the auxiliary input after preset edits. */
+      summaryInstruction?: string
       /** Provider-reported token usage for the summarization request, when emitted. */
       usage?: TokenUsage
     } & (

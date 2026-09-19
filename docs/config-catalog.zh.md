@@ -480,6 +480,8 @@ export interface Config {
 ```ts config-catalog
 /** Basic compaction configuration with an optional exact-target policy table. */
 export interface BasicCompactionConfig extends CompactionPolicyConfig {
+  /** Optional non-empty replacement for the final summary directive; routing and retention stay unchanged. */
+  summaryInstruction?: string
   /** Exact provider/model overrides; duplicate targets fail plugin load. */
   modelPolicies?: ModelCompactPolicyConfig[]
   /** Enable automatic step-boundary pressure and overflow-recovery listeners. Defaults to `true`. */

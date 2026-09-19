@@ -73,6 +73,9 @@ kind: "package-reference"
 | `maxOverflowRetries` | `1` | 已确认上下文窗口溢出后的最大重试次数；`0` 只禁用恢复。 |
 | `modelPolicies` | `[]` | 针对个别模型路由的精确 `{ provider, model, ...partialPolicy }` 覆盖。 |
 | `auto` | `true` | 启用自动压缩与溢出恢复；设为 `false` 则仅手动执行。 |
+| `summaryInstruction` | 内置编程摘要指令 | 非空的最终摘要消息替代文本；不改变模型路由、保留范围或重试策略。 |
+
+配置的指令随生成的检查点保存到 `compaction/summary.summaryInstruction`，避免之后修改预设导致辅助请求指令不可追溯。
 
 配置错误会快速失败：未知设置、重复的按模型覆盖、两种保留形式同时出现，或比例保留量不低于阈值，都会在加载时拒绝插件。任何绝对 `retainTokens` 预算——顶层或按模型——不低于其阈值时，都会在该模型首次使用时失败，因为该比较需要模型的上下文大小。
 
@@ -183,7 +186,7 @@ This is an automatically generated checkpoint condensing an earlier span of the 
 
 #### 模型看到的内容
 
-摘要模型会接收逐字回放的会话：与上次已路由请求为已遮蔽区域发送的相同系统提示词、工具 schema 与消息，后面跟随一条最终 user 消息，即下方压缩指令。会话模型绝不会看到该私有请求或其推理；只有返回文本会被存储。
+摘要模型会接收逐字回放的会话：与上次已路由请求为已遮蔽区域发送的相同系统提示词、工具 schema 与消息，后面跟随一条最终 user 消息：配置时使用 `summaryInstruction`，否则使用下方压缩指令。会话模型绝不会看到该私有请求或其推理；只有返回文本会被存储。改变指令只替换这条最终消息，不改变回放前缀或模型选择策略。
 
 ##### 压缩指令（最终 user 消息）
 

@@ -496,6 +496,7 @@ function commitCompactionBody(
       : { sourceCommandId: startEvent.data.sourceCommandId },
     summary,
     ...callRecord,
+    ...(summarized.summaryInstruction === undefined ? {} : { summaryInstruction: summarized.summaryInstruction }),
     shadowedRange: { start, end },
     shadowedSeqs: [...shadowedSeqs],
     shadowedTokenCount,

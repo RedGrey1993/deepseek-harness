@@ -1259,6 +1259,28 @@ async function summarizerHarness(
 }
 
 describe('default one-shot summarizer', () => {
+  it('retains the configured instruction across routed policies and records it with the checkpoint', async () => {
+    const instruction = '保留作者纠正、授权范围及材料版本；待审核事实不是正典。'
+    const { ctx, adapter, compact } = await summarizerHarness([{ type: 'text', text: '创作检查点' }], undefined, MODEL, {
+      auto: false,
+      summaryInstruction: instruction,
+      modelPolicies: [{ provider: MODEL, model: MODEL, maxTokens: 456 }],
+    })
+    try {
+      const session = conversation(2, undefined, '创作角色')
+      const nodes = [...session.surface.nodes]
+      const prefix = session.deriveMessages().slice(0, 3)
+      await compact.compactRegion(nodes[1]!, nodes[2]!, agent(session, MODEL), SIGNAL)
+      expect(adapter.lastOptions).toMatchObject({ provider: MODEL, model: MODEL, maxTokens: 456, signal: SIGNAL })
+      expect(adapter.lastOptions?.messages.slice(0, -1)).toEqual(prefix)
+      expect(adapter.lastOptions?.messages.at(-1)?.content).toEqual([{ type: 'text', text: instruction }])
+      expect(session.snapshotEvents().find(event => event.type === 'compaction/summary')?.data).toHaveProperty('summaryInstruction', instruction)
+      expect(() => resolveConfig({ summaryInstruction: '  ' })).toThrow('summaryInstruction')
+    } finally {
+      await ctx.fiber.dispose()
+    }
+  })
+
   it.each([undefined, '', 'SYSTEM HEAD\n精确前缀\n'])('preserves the routed prefix through region summarization with system %j', async (system) => {
     const { adapter, compact } = await summarizerHarness([{ type: 'text', text: 'summary' }])
     const session = conversation(3, undefined, system)

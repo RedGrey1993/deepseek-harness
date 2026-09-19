@@ -12,6 +12,7 @@ import type {
 import type { Agent } from '@deepseek-ai/dsh-agent'
 
 interface SummaryConfig {
+  readonly summaryInstruction?: string
   readonly summarizationProvider: string
   readonly summarizationModel: string
   readonly maxTokens: number
@@ -84,6 +85,8 @@ export interface SummarizationInput {
 
 /** Safe summary content plus the exact auxiliary call envelope recorded with it. */
 export type SummaryResult = {
+  /** Configured directive recorded with the checkpoint; omission denotes the built-in directive. */
+  summaryInstruction?: string
   summary: ContentBlock[]
   provider: string
   model: string
@@ -144,7 +147,7 @@ export async function summarizeWithLlm(
   const messages: Message[] = [
     ...input.messages,
     createUserMessage({
-      content: [{ type: 'text', text: COMPACTION_INSTRUCTION }],
+      content: [{ type: 'text', text: config.summaryInstruction ?? COMPACTION_INSTRUCTION }],
       source: { kind: 'plugin', plugin: 'dsh-compaction-basic' },
     }),
   ]
@@ -175,6 +178,7 @@ export async function summarizeWithLlm(
     model: options.model,
     maxTokens: config.maxTokens,
     ...(assembler.usage === undefined ? {} : { usage: assembler.usage }),
+    ...(config.summaryInstruction === undefined ? {} : { summaryInstruction: config.summaryInstruction }),
   }
 }
 
