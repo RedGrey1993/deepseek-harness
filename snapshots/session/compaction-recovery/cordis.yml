@@ -6,3 +6,4 @@
     thresholdRatio: 0.99
     retainTokens: 20
     maxTokens: 32
+    summaryInstruction: Summarize author intent, approved facts, pending review and material revisions. Do not promote proposals to facts.

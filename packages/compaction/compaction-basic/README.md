@@ -74,6 +74,9 @@ All settings are optional. With context window `W`, effective request output cap
 | `maxOverflowRetries` | `1` | Maximum retries after a confirmed context-window overflow; `0` disables recovery only. |
 | `modelPolicies` | `[]` | Exact `{ provider, model, ...partialPolicy }` overrides for individual model routes. |
 | `auto` | `true` | Enable automatic condensation and overflow recovery; set `false` for manual-only operation. |
+| `summaryInstruction` | built-in coding directive | Non-empty replacement for the final summarizer message; does not change model routing, retention or retry policy. |
+
+A configured directive is stored as `compaction/summary.summaryInstruction` with the resulting checkpoint so a later preset edit does not erase the auxiliary request's instruction.
 
 Misconfiguration fails fast: unknown settings, duplicate per-model overrides, invalid token counts, both retention forms together, or a retention ratio at least as large as the threshold ratio reject the plugin at load. When the model is first used, `W − O − B` must be positive and the resolved retained budget must be below the trigger. Zero headroom requires an explicit positive `maxTokens`, globally or in that model policy. Small-window deployments must configure headroom that fits their capacity; lower `thresholdRatio` to compact earlier.
 
@@ -184,7 +187,7 @@ Replacing rather than append-only. Each checkpoint invalidates reuse from the fi
 
 #### What the model sees
 
-The summarization model receives the system prompt and shadowed-region history, with tool declarations and developer updates projected for its route, followed by one final user message: the compaction instruction below. The conversation model never sees this private request or its reasoning; only returned text is stored.
+The summarization model receives the system prompt and shadowed-region history, with tool declarations and developer updates projected for its route, followed by one final user message: `summaryInstruction` when configured, otherwise the compaction instruction below. The conversation model never sees this private request or its reasoning; only returned text is stored. Changing the directive replaces only this final message, not the replay prefix or model-selection policy.
 
 ##### Compaction instruction (final user message)
 

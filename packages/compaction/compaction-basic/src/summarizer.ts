@@ -5,14 +5,14 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { contentHasImage, BlockAssembler, LlmError } from '@deepseek-ai/dsh-llm'
-import { deepFreeze } from '@deepseek-ai/dsh-util-values'
+import { contentHasImage, createUserMessage, BlockAssembler, LlmError } from '@deepseek-ai/dsh-llm'
 import type {
   ContentBlock, FinishReason, GenerateOptions, Message, RequestMessage, TokenUsage, ToolSchema,
 } from '@deepseek-ai/dsh-llm'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 
 interface SummaryConfig {
+  readonly summaryInstruction?: string
   readonly summarizationProvider: string
   readonly summarizationModel: string
   readonly maxTokens: number
@@ -85,6 +85,8 @@ export interface SummarizationInput {
 
 /** Safe summary content plus the exact auxiliary call envelope recorded with it. */
 export type SummaryResult = {
+  /** Configured directive recorded with the checkpoint; omission denotes the built-in directive. */
+  summaryInstruction?: string
   summary: ContentBlock[]
   provider: string
   model: string
@@ -144,9 +146,9 @@ export async function summarizeWithLlm(
   const assembler = new BlockAssembler()
   const messages: RequestMessage[] = [
     ...input.messages,
-    deepFreeze({
-      role: 'user',
-      content: [{ type: 'text', text: COMPACTION_INSTRUCTION }],
+    createUserMessage({
+      content: [{ type: 'text', text: config.summaryInstruction ?? COMPACTION_INSTRUCTION }],
+      source: { kind: 'plugin', plugin: 'dsh-compaction-basic' },
     }),
   ]
   const options: GenerateOptions = {
@@ -177,6 +179,7 @@ export async function summarizeWithLlm(
     model: options.model,
     maxTokens: config.maxTokens,
     ...(assembler.usage === undefined ? {} : { usage: assembler.usage }),
+    ...(config.summaryInstruction === undefined ? {} : { summaryInstruction: config.summaryInstruction }),
   }
 }
 
