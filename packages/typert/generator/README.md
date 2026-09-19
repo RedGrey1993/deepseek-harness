@@ -47,6 +47,8 @@ After the build, `lib/typert.host.js` and `lib/typert.host.d.ts` exist and the [
 
 Static consumers call `WorkspaceAnalyzer` directly against the workspace's `tsconfig.host.json` and `tsconfig.client.json` aggregates, select a face and package subset, and read the resulting `FaceModel` and type graph without emitting or loading runtime artifacts. `analyzeInBatches()` processes a large package selection through bounded compiler programs with the same model shape, and `discoverPackages()` finds contributing packages without building a type-checker program.
 
+Standalone plugin workspaces keep contributing packages under `packages/` and reference their face configs from the root aggregates. Remote markers imported from an installed `@deepseek-ai/dsh-typert-protocol` package are recognized by declaration ownership, including re-exports; unrelated decorators with the same name do not contribute Remote methods. Generated Remote declarations retain installed business types through explicit import types, including authored import aliases, rather than leaving their names unbound.
+
 ### Running generation inside a tsdown build
 
 The package's `./tsdown` subpath provides `typertPlugin()` for the root tsdown config: it lowers standard decorators in TypeScript dependencies before bundling and emits the model-driven face artifacts at the package output root. In `package` mode it emits only the bundled package; in `workspace` mode it emits every explicit contributor once.

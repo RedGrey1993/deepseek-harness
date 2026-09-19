@@ -281,6 +281,66 @@ async function binaryTree() {
 }
 void binaryTree
 `)
+  it.each([
+    'node_modules/@deepseek-ai/dsh-typert-protocol',
+    'node_modules/.pnpm/protocol/node_modules/@deepseek-ai/dsh-typert-protocol',
+  ])('emits Remote methods from installed protocol declarations at %s', (dependencyPath) => {
+    const root = copyFixture()
+    const dependency = join(root, dependencyPath)
+    mkdirSync(dependency, { recursive: true })
+    const declaration = readFileSync(join(root, 'typert-protocol.d.ts'), 'utf8')
+      .replace("declare module '@deepseek-ai/dsh-typert-protocol' {", '')
+      .replace(/}\s*$/, '')
+    writeFileSync(join(dependency, 'index.d.ts'), declaration)
+    writeFileSync(join(dependency, 'package.json'), JSON.stringify({
+      name: '@deepseek-ai/dsh-typert-protocol', types: './index.d.ts',
+    }))
+    editFile(root, 'tsconfig.base.json', source => source.replace(
+      './typert-protocol.d.ts', `./${dependencyPath}/index.d.ts`,
+    ))
+    writeFileSync(join(dependency, 'markers.d.ts'), declaration)
+    writeFileSync(join(dependency, 'index.d.ts'), "export * from './markers'\n")
+    const [artifact] = new WorkspaceTypertGenerator(root).generate()
+    expect(artifact?.remote?.dts).toContain("'goals/create'")
+    expect(artifact?.remote?.dts).toContain("'agent:goals/rename'")
+    expect(remotePackage(root).invocations).toHaveLength(3)
+  })
+
+  it('imports installed branded types into generated Remote declarations', async () => {
+    const root = copyFixture()
+    const dependency = join(root, 'node_modules/@fixture/ids')
+    mkdirSync(dependency, { recursive: true })
+    writeFileSync(join(dependency, 'package.json'), JSON.stringify({
+      name: '@fixture/ids', exports: { './types': './types.d.ts' },
+    }))
+    writeFileSync(join(dependency, 'types.d.ts'), 'declare const brand: unique symbol\nexport type ExternalId = string & { readonly [brand]: true }\n')
+    editFile(root, 'packages/remote/src/index.ts', source =>
+      "import type { ExternalId as RequestId } from '@fixture/ids/types'\n" + source.replace(
+        'export class GoalService extends TypertRemoteService {',
+        `export class GoalService extends TypertRemoteService {
+  @Remote
+  echo(id: RequestId): RequestId { return id }
+`,
+      ))
+    const [artifact] = new WorkspaceTypertGenerator(root).generate()
+    expect(artifact?.remote?.dts).toContain('import("@fixture/ids/types").ExternalId')
+    expect(artifact?.remote?.dts).toContain('echo: (id: import("@fixture/ids/types").ExternalId)')
+    assertRemoteConsumerTypechecks(artifact?.remote?.dts, artifact?.remote?.dtsMap, root)
+    const remoteJs = artifact?.remote?.js
+    if (remoteJs === undefined) throw new Error('External Remote fixture emitted no JavaScript')
+    const executable = remoteJs.replace("from 'zod'", `from '${import.meta.resolve('zod')}'`)
+    const generated = await import(`data:text/javascript,${encodeURIComponent(executable)}`) as RuntimeRemoteModule
+    const echo = generated.TYPERT_REMOTE.descriptors.find(descriptor => descriptor.id.endsWith('#goals/echo'))!
+    expect(echo.parameters[0]!.codec.create().safeParse('session-1').success).toBe(true)
+    expect(echo.parameters[0]!.codec.create().safeParse(123).success).toBe(false)
+  })
+
+  it('ignores same-named decorators owned by another package', () => {
+    const root = copyFixture()
+    for (const file of ['typert-protocol.d.ts', 'tsconfig.base.json', 'packages/remote/src/index.ts', 'packages/domain/src/index.ts']) {
+      editFile(root, file, source => source.replaceAll('@deepseek-ai/dsh-typert-protocol', '@fixture/other-protocol'))
+    }
+    expect(analyzeRemote(root).faces.flatMap(face => face.packages.flatMap(pkg => pkg.invocations))).toEqual([])
   })
 
   it('discovers a Remote-only package and emits strict direct and Context descriptors', async () => {
