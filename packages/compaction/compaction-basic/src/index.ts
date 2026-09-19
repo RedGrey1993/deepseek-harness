@@ -125,6 +125,7 @@ export class BasicCompactionEngine extends CompactionEngine {
     maxOverflowRetries: maxOverflowRetriesSchema,
     modelPolicies: z.array(modelPolicy),
     auto: z.boolean(),
+    summaryInstruction: z.string(),
   })
 
   /** Resolved and validated compaction configuration. */
@@ -253,7 +254,10 @@ export class BasicCompactionEngine extends CompactionEngine {
     const config = target === undefined
       ? this.config
       : resolveTargetPolicy(this.config, target)
-    return summarizeWithLlm(this.ctx, config, input, agent, signal)
+    return summarizeWithLlm(this.ctx, {
+      ...config,
+      ...(this.config.summaryInstruction === undefined ? {} : { summaryInstruction: this.config.summaryInstruction }),
+    }, input, agent, signal)
   }
 
   /**
