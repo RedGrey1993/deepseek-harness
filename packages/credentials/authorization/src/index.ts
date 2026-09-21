@@ -134,12 +134,24 @@ export interface AuthorizationFlow {
    */
   readonly methods: readonly [AuthorizationMethod, ...AuthorizationMethod[]]
   /**
+   * Check locally available credentials without starting login, prompting,
+   * refreshing credentials, or validating them with a remote service.
+   * @returns whether the provider detects a credential locally, not whether a remote request will succeed.
+   */
+  checkCredential?(): Promise<boolean>
+  /**
    * Run one attempt to obtain and commit the credential.
    * @param session - the chosen method, the cancellation signal, and the interaction callbacks.
    * @returns once the record is committed.
    * @throws when the attempt fails or the human declines.
    */
   run(session: AuthorizationSession): Promise<void>
+}
+
+/** Host-only flow metadata with an optional credential check; never a wire response. */
+export interface AuthorizationDescription extends AuthorizationEntry {
+  /** Provider-owned check with the same restrictions as {@link AuthorizationFlow.checkCredential}. */
+  readonly checkCredential?: AuthorizationFlow['checkCredential']
 }
 
 /**
@@ -202,7 +214,7 @@ export class AuthorizationService extends Service {
    * claiming the same key would each write a record in their own format, and
    * whichever ran last would leave the other reading a payload it cannot parse.
    *
-   * @param flow - the key it writes, its label, its methods, and its runner.
+   * @param flow - the key it writes, its label, its methods, its runner, and an optional local credential check.
    * @returns Disposer that withdraws this flow.
    * @throws {AuthorizationError} code `DUPLICATE_FLOW` when the key is already claimed.
    */
@@ -226,6 +238,7 @@ export class AuthorizationService extends Service {
 
   /**
    * Every registered flow, for a surface listing what can be authorized.
+   * Credential checks are neither invoked nor included.
    * @returns one entry per flow, in registration order.
    */
   list(): readonly AuthorizationEntry[] {
@@ -233,13 +246,18 @@ export class AuthorizationService extends Service {
   }
 
   /**
-   * One registered flow.
+   * Read one flow's metadata synchronously without invoking its credential check.
+   * Call the optional check only while the flow remains registered.
    * @param key - the credential record to ask about.
-   * @returns the entry, or undefined when no flow claims that key.
+   * @returns host-only metadata and the optional check, or undefined when no flow claims that key.
    */
-  describe(key: CredentialKey): AuthorizationEntry | undefined {
+  describe(key: CredentialKey): AuthorizationDescription | undefined {
     const flow = this.flows.get(key)
-    return flow === undefined ? undefined : this.entry(flow)
+    if (flow === undefined) return undefined
+    return {
+      ...this.entry(flow),
+      ...flow.checkCredential === undefined ? {} : { checkCredential: flow.checkCredential.bind(flow) },
+    }
   }
 
   /** The public view of one registered flow. */

@@ -64,6 +64,8 @@ dispose()                         // unregister; withdraws any running attempt
 
 flow 声明它写入的凭据记录、面向用户的标签以及它提供的登录方法，最优先者在前。`run()` 通过会话与人对话——单向 notice 与 flow 无法自行回答的问题——并且必须在返回前通过 `ctx.credentials` 提交记录：seam 会拒绝未提交就返回的 flow。`list()` 与 `describe()` 让界面展示可授权的内容以及是否有尝试在运行；`dispose()` 注销该 flow 并撤销仍在运行中的尝试。
 
+flow 还可以提供仅限 Host 的 `checkCredential(): Promise<boolean>`，用于检测本地凭据。同步 `describe()` 返回 `AuthorizationDescription`，在可安全传输的 `AuthorizationEntry` 上附加该可选闭包，但不会执行检查。`list()` 只返回元数据，既不调用也不暴露闭包。检查不得启动登录、提问、刷新凭据或执行远程有效性验证；返回的布尔值不保证真实账号或请求能够正常使用。
+
 ### 发起一次尝试
 
 每个凭据同时只允许一次尝试。交互随请求传入而非存放在注册表中，因此提问恰好抵达发问的那个页面；无头调用方传入一个直接拒绝的交互实现。当记录在尝试期间被提交并被观察到时，`begin()` 报告 `{ status: 'authorized' }`；当人拒绝或调用方撤销时，报告 `{ status: 'cancelled' }`。`cancel(key)` 从第二次调用撤销正在运行的尝试，服务于那种用第二次调用来响应「取消」按钮、却不持有第一次调用 signal 的请求/响应式传输。

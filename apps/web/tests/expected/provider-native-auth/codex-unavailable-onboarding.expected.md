@@ -1,0 +1,8 @@
+- dialog "Add an API key to get started":
+  - heading "Add an API key to get started" [level=2]
+  - paragraph: Configure the official DeepSeek provider to start building.
+  - text: API key
+  - textbox "API key":
+    - /placeholder: Enter your API key
+  - button "Configure later"
+  - button "Save and continue" [disabled]

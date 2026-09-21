@@ -1,6 +1,6 @@
 /** Page-store join: directory × namespaces × credentials, with last-good rows on failure. */
-import { describe, expect, it } from 'vitest'
-import type { RpcResponse } from '@deepseek-ai/dsh-api-remotes/client'
+import { describe, expect, it, vi } from 'vitest'
+import type { ProviderAuthorizationState, RpcResponse } from '@deepseek-ai/dsh-api-remotes/client'
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import { SettingsDescribeMirror } from '@deepseek-ai/dsh-client-ui-settings/src/client/settings-mirror.ts'
 import { settingsSchema } from './settings-schema.client.ts'
@@ -87,8 +87,11 @@ function api(overrides: {
   providers?: () => Promise<RpcResponse<{ providers: typeof DIRECTORY }>>
   describeSettings?: () => Promise<RemoteAnswer<{ writable: boolean; hasDocument: boolean; namespaces: typeof NAMESPACES }>>
   describeCredentials?: (refs: readonly string[]) => Promise<RemoteAnswer<Record<string, unknown>>>
+  describeAuthorization?: (provider: string) => Promise<RemoteAnswer<ProviderAuthorizationState>>
+  local?: boolean
 } = {}) {
   const seenRefs: string[][] = []
+  const seenProviders: string[] = []
   const providers = overrides.providers ?? (() => Promise.resolve(ok({ providers: DIRECTORY })))
   let providerBatch: Promise<RpcResponse<{ providers: typeof DIRECTORY }>> | undefined
   let providerBatchReads = 0
@@ -119,6 +122,14 @@ function api(overrides: {
         .map(({ active: _active, ...row }) => row)),
       discoverModels: () => Promise.resolve(remoteOk([])),
     },
+    authorization: {
+      describe: (provider: string) => {
+        seenProviders.push(provider)
+        return overrides.describeAuthorization?.(provider) ?? Promise.resolve(remoteOk({
+          available: false, configured: false, nativeConfigured: false, inFlight: false, writable: true, methods: [],
+        }))
+      },
+    },
     settings: {
       describe: overrides.describeSettings
         ?? (() => Promise.resolve(remoteOk({ writable: true, hasDocument: false, namespaces: NAMESPACES }))),
@@ -136,8 +147,8 @@ function api(overrides: {
     },
   }
   // The page plugin's context, scripted down to the namespaces it reaches.
-  const ctx = { remote: { $host: { isLoopback: false }, ...face } } as never
-  return { ctx, face, mirror: new SettingsDescribeMirror(ctx), seenRefs }
+  const ctx = { remote: { $host: { isLoopback: overrides.local ?? false }, ...face } } as never
+  return { ctx, face, mirror: new SettingsDescribeMirror(ctx), seenRefs, seenProviders }
 }
 
 describe('ModelsSettingsStore', () => {
@@ -229,6 +240,184 @@ describe('ModelsSettingsStore', () => {
     release?.()
     await Promise.all([first, second])
     expect(store.store.getSnapshot().status).toBe('ready')
+  })
+})
+
+describe('provider authorization join', () => {
+  const account: ProviderAuthorizationState = {
+    available: true, configured: false, nativeConfigured: false, inFlight: false, writable: true,
+    methods: [{ id: 'oauth', label: 'xAI' }, { id: 'api-key', label: 'API key' }],
+  }
+  const providers = [
+    ...DIRECTORY,
+    { provider: 'xai', displayName: 'xAI', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'xai'], active: true, declared: false },
+    { provider: 'openai-codex', displayName: 'Codex', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openai-codex'], active: false },
+    { provider: 'custom', displayName: 'Custom', settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'custom'], active: true, declared: true },
+  ]
+
+  it('queries every installed pi-ai row in parallel, including dormant routes but not declared or DeepSeek routes', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const { ctx, mirror, seenProviders } = api({
+      local: true,
+      providers: async () => ok({ providers }),
+      describeAuthorization: async (provider) => {
+        await gate
+        return remoteOk({ ...account, configured: provider === 'xai' })
+      },
+    })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    const loading = store.load()
+    try {
+      await vi.waitFor(() => {
+        expect(seenProviders).toEqual(['openai', 'anthropic', 'xai', 'openai-codex'])
+      })
+      expect(store.store.getSnapshot().status).toBe('loading')
+    } finally {
+      release()
+      await loading
+    }
+    const state = store.store.getSnapshot()
+    expect(state).toMatchObject({ status: 'ready', credentialError: null })
+    const byProvider = new Map(state.rows.map(row => [row.entry.provider, row]))
+    expect(byProvider.get('xai')?.authorization).toEqual({ ...account, configured: true })
+    expect(byProvider.get('openai-codex')).toMatchObject({
+      entry: { active: false }, configured: false, authorization: account,
+    })
+    for (const provider of ['deepseek-official', 'custom', 'ghost']) {
+      expect(byProvider.get(provider)?.authorization).toBeUndefined()
+    }
+  })
+
+  it('never queries account metadata from a non-loopback browser', async () => {
+    const { ctx, mirror, seenProviders } = api({
+      local: false, providers: async () => ok({ providers }),
+    })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    await store.load()
+    expect(seenProviders).toEqual([])
+    expect(store.store.getSnapshot().status).toBe('ready')
+    expect(store.store.getSnapshot().rows.every(row => row.authorization === undefined)).toBe(true)
+  })
+
+  it('keeps the page and successful accounts ready when one describe fails', async () => {
+    const { ctx, mirror } = api({
+      local: true,
+      describeAuthorization: async provider => provider === 'openai'
+        ? remoteFail('authorization unavailable') : remoteOk(account),
+    })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    await store.load()
+    const state = store.store.getSnapshot()
+    expect(state).toMatchObject({ status: 'ready', error: null, credentialError: 'authorization unavailable' })
+    expect(state.rows.find(row => row.entry.provider === 'openai')).toMatchObject({
+      credential: { configured: true },
+    })
+    expect(state.rows.find(row => row.entry.provider === 'openai')?.authorization).toBeUndefined()
+    expect(state.rows.find(row => row.entry.provider === 'anthropic')?.authorization).toEqual(account)
+  })
+
+  it('retains last-confirmed account metadata on failure and replaces it with a successful unavailable response', async () => {
+    const unavailable: ProviderAuthorizationState = {
+      available: false, configured: false, nativeConfigured: false, inFlight: false, writable: false, methods: [],
+    }
+    let response: RemoteAnswer<ProviderAuthorizationState> = remoteOk(account)
+    const { ctx, mirror } = api({
+      local: true,
+      providers: async () => ok({ providers: providers.filter(row => row.provider === 'xai') }),
+      describeAuthorization: async () => response,
+    })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    await store.load()
+    expect(store.store.getSnapshot().rows[0]?.authorization).toEqual(account)
+
+    response = remoteFail('temporary account failure')
+    await store.load()
+    expect(store.store.getSnapshot()).toMatchObject({
+      status: 'ready', error: null, credentialError: 'temporary account failure',
+      rows: [{ authorization: account }],
+    })
+
+    response = remoteOk(unavailable)
+    await store.load()
+    expect(store.store.getSnapshot()).toMatchObject({
+      status: 'ready', error: null, credentialError: null,
+      rows: [{ authorization: unavailable }],
+    })
+  })
+
+  it.each(['custom', 'namespace', 'provider'] as const)('does not retain account metadata after a change of %s', async (change) => {
+    const original = {
+      provider: 'xai', displayName: 'xAI', settingsNs: 'llm-pi-ai',
+      settingsPath: ['providers', 'xai'], active: true, declared: false,
+    }
+    let entry = original
+    let response: RemoteAnswer<ProviderAuthorizationState> = remoteOk(account)
+    const { ctx, mirror, seenProviders } = api({
+      local: true,
+      providers: async () => ok({ providers: [entry] }),
+      describeAuthorization: async () => response,
+    })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    await store.load()
+    expect(store.store.getSnapshot().rows[0]?.authorization).toEqual(account)
+
+    entry = change === 'custom' ? { ...original, declared: true }
+      : change === 'namespace' ? { ...original, settingsNs: 'llm-deepseek' }
+        : { ...original, provider: 'openai-codex', settingsPath: ['providers', 'openai-codex'] }
+    response = remoteFail('account unavailable')
+    await store.load()
+    expect(store.store.getSnapshot().status).toBe('ready')
+    expect(store.store.getSnapshot().rows[0]?.authorization).toBeUndefined()
+    expect(seenProviders).toEqual(change === 'provider' ? ['xai', 'openai-codex'] : ['xai'])
+  })
+
+  it('retains the credential diagnostic when account enrichment also fails', async () => {
+    const { ctx, mirror } = api({
+      local: true,
+      describeCredentials: async () => remoteFail('credentials unavailable'),
+      describeAuthorization: async () => remoteFail('authorization unavailable'),
+    })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    await store.load()
+    expect(store.store.getSnapshot()).toMatchObject({
+      status: 'ready', error: null, credentialError: 'credentials unavailable',
+    })
+  })
+
+  it.each(['success', 'failure'] as const)('ignores a stale account %s after a newer load commits', async (outcome) => {
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    let calls = 0
+    const { ctx, mirror } = api({
+      local: true,
+      providers: async () => ok({ providers: providers.filter(row => row.provider === 'xai') }),
+      describeAuthorization: async () => {
+        calls += 1
+        if (calls === 1) {
+          await gate
+          return outcome === 'success' ? remoteOk(account) : remoteFail('stale account failure')
+        }
+        return remoteOk({ ...account, configured: true })
+      },
+    })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    const first = store.load()
+    try {
+      await vi.waitFor(() => { expect(calls).toBe(1) })
+      await store.load()
+      expect(store.store.getSnapshot()).toMatchObject({
+        status: 'ready', credentialError: null,
+        rows: [{ authorization: { configured: true } }],
+      })
+    } finally {
+      release()
+      await first
+    }
+    expect(store.store.getSnapshot()).toMatchObject({
+      status: 'ready', error: null, credentialError: null,
+      rows: [{ authorization: { configured: true } }],
+    })
   })
 })
 

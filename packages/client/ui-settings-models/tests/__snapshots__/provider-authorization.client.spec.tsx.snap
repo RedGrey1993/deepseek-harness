@@ -1,3 +1,5 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`provider authorization > shows URL and device code, forwards prompt answers, and refreshes only after success 1`] = `"ChatGPT accountUpdating account…Refresh sign-in statusSign in with ChatGPTCancelAuthorize this accountOpen authorization pagehttps://auth.openai.com/codex/deviceVerification code: ABCD-1234Paste callback codeContinue"`;
+exports[`provider authorization > retains the xAI device URL and code during progress without requiring a callback prompt 1`] = `"Provider accountUpdating account…Sign in with SuperGrok or X PremiumRefresh sign-in statusSign inCancelWaiting for authorizationOpen authorization pagehttps://auth.x.ai/deviceVerification code: XAI-1234"`;
+
+exports[`provider authorization > shows URL and device code, forwards prompt answers, and refreshes only after success 1`] = `"Provider accountUpdating account…ChatGPTRefresh sign-in statusSign inCancelAuthorize this accountOpen authorization pagehttps://auth.openai.com/codex/deviceVerification code: ABCD-1234Paste callback codeContinue"`;

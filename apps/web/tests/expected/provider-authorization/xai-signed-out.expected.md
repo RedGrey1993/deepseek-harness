@@ -1,0 +1,47 @@
+- dialog "Settings":
+  - navigation:
+    - text: Settings
+    - button "General":
+      - img
+      - text: General
+    - button "Models":
+      - img
+      - text: Models
+    - button "Built-in plugins":
+      - img
+      - text: Built-in plugins
+    - button "Agent presets":
+      - img
+      - text: Agent presets
+    - button "Archived sessions":
+      - img
+      - text: Archived sessions
+  - button "Open configuration file"
+  - button "Close":
+    - img
+    - text: Close
+  - heading "Models" [level=2]
+  - paragraph: Configure API keys or sign in to use models from the following providers.
+  - list:
+    - listitem:
+      - text: xai
+      - img "Not signed in"
+      - button "Edit xai": Edit
+      - button "Delete xai": Delete
+      - text: xai Provider account
+      - status: Not signed in
+      - paragraph: Sign in with SuperGrok or X Premium
+      - button "Refresh sign-in status"
+      - button "Sign in"
+      - text: API key
+      - textbox "API key":
+        - /placeholder: Enter an API key, or leave blank to use environment authentication
+      - group: Customized settings
+      - button "Cancel"
+      - button "Apply"
+  - button "Add provider":
+    - img
+    - text: Add provider
+  - button "Add a custom provider":
+    - img
+    - text: Add a custom provider

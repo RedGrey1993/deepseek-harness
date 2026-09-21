@@ -32,7 +32,7 @@ export function authorizationUrl(value: string | undefined): string | undefined 
 }
 
 /**
- * Render the Codex account state and the active provider's sign-in conversation.
+ * Render the provider account state and its caller-private sign-in conversation.
  * @param props - card-owned callbacks, identity, and localized copy.
  * @returns account controls and caller-private notices and prompts.
  */
@@ -157,6 +157,7 @@ export function ProviderAuthorization({ provider, operations, t, readOnly, overr
     } finally { if (mounted.current) setBusy(false) }
   }
 
+  const method = account?.methods.find(candidate => candidate.id === 'oauth')
   const link = authorizationUrl(notice?.url)
   const disabled = readOnly || busy || account?.writable !== true || account.inFlight
   return (
@@ -167,6 +168,7 @@ export function ProviderAuthorization({ provider, operations, t, readOnly, overr
           {busy ? t('oauthSigningIn') : account === undefined ? t('oauthLoading')
             : t(account.configured ? 'oauthConnected' : 'oauthDisconnected')}
         </p>
+        {method === undefined ? null : <p className={styles['advancedHint']}>{method.label}</p>}
         {overridden ? <p className={styles['error']}>{t('oauthOverride')}</p> : null}
         {account?.available === false ? <p className={styles['error']}>{t('oauthUnavailable')}</p> : null}
         {account?.inFlight === true && !busy ? <p>{t('oauthInFlight')}</p> : null}
