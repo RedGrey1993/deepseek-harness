@@ -24,7 +24,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type {
-  CredentialInfo, SettingsNamespaceView, SettingsPathOpView,
+  CredentialInfo, ProviderAuthorizationState, SettingsNamespaceView, SettingsPathOpView,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import {
@@ -94,6 +94,8 @@ export interface ProviderEditorProps {
    * still.
    */
   onBusyChange?: (busy: boolean) => void
+  /** Installed provider's login methods and safe account metadata. */
+  authorization?: ProviderAuthorizationState
   /** Refresh provider badges after a sign-in or sign-out. */
   onAuthorizationChanged?: () => void
 }
@@ -189,7 +191,12 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   // Account settings use a configurable Cordis entry id.
   const layout = accountProvider ? 'deepseek' : layoutOf(namespace.ns)
   const keyRef = refFor(schema, namespace, settingsPath, props.provider)
-  const codex = layout === 'pi-ai' && props.provider === 'openai-codex' && props.declared !== true
+  const catalogProvider = layout === 'pi-ai' && props.declared !== true
+  const oauth = catalogProvider && props.authorization?.methods.some(method => method.id === 'oauth') === true
+  const profile = schema.getPath(namespace.value, settingsPath)
+  const explicitKey = schema.getPath(profile, ['apiKeyEnv']) !== undefined
+  const showApiKey = !oauth || explicitKey
+    || props.authorization?.methods.some(method => method.id === 'api-key') === true
   // The same schema read the create card makes, so the choices offered here
   // and there cannot drift apart: both come from the adapter's own `Config`.
   // Only the pi-ai layout has a per-route protocol for the read to find, and
@@ -203,7 +210,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     if (accountProvider) return
     let stale = false
     setKeyState(undefined)
-    if (codex) return
+    if (!showApiKey) return
     // The key state is a placeholder hint, not a precondition for editing: a
     // refused describe leaves the card without the "already configured" hint.
     void operations.describeCredential(keyRef).then((described) => {
@@ -211,7 +218,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
       setKeyState(described)
     })
     return () => { stale = true }
-  }, [operations, keyRef, accountProvider, codex])
+  }, [operations, keyRef, accountProvider, showApiKey])
 
   const stringAt = (source: unknown, key: string): string | undefined => {
     const value = schema.getPath(source, [key])
@@ -381,17 +388,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
       defaultMaxTokens={typeof defaultMaxTokens === 'number' ? defaultMaxTokens : undefined} />
     return (
       <>
-        {codex ? (
+        {catalogProvider && !operations.canAuthorize
+          ? <p className={styles['advancedHint']}>{t('oauthLocalOnly')}</p>
+          : null}
+        {catalogProvider && props.authorization?.available === false
+          ? <p className={styles['advancedHint']}>{t('oauthUnavailable')}</p>
+          : null}
+        {oauth ? (
           <ProviderAuthorization
             key={props.provider}
             provider={props.provider}
             operations={operations}
             t={t}
             readOnly={disabled}
-            overridden={stringAt(fallback, 'apiKeyEnv') !== undefined}
+            overridden={explicitKey || keyValue.length > 0}
             onChanged={() => { props.onAuthorizationChanged?.() }}
           />
-        ) : <div className={styles['field']}>
+        ) : null}
+        {showApiKey ? <div className={styles['field']}>
           <span className={styles['fieldLabel']}>{t('keyInput')}</span>
           <input
             className={styles['input']}
@@ -407,7 +421,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
             onChange={(event) => { setKeyDraft(event.target.value) }}
           />
           {shownKeyFailure === undefined ? null : <p className={styles['error']}>{t(shownKeyFailure)}</p>}
-        </div>}
+        </div> : null}
         {props.credentialOnly === true ? null : <details className={styles['customized']}>
           <summary className={styles['customizedSummary']}>{t('customized')}</summary>
           <div className={styles['customizedBody']}>

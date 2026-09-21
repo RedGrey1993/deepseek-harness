@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { credentialKey } from '@deepseek-ai/dsh-credentials'
 import InvariantRegistry from '@deepseek-ai/dsh-invariants'
@@ -15,10 +15,12 @@ describe('authorization invariant companion', () => {
     await ctx.plugin(AuthorizationInvariant)
     await ctx.plugin(MemoryCredentials)
     await ctx.plugin(AuthorizationService)
+    const checkCredential = vi.fn(() => Promise.resolve(true))
     ctx.authorization.registerFlow({
       key: KEY,
       label: 'ChatGPT (Codex)',
       methods: [{ id: 'oauth', label: 'Sign in' }],
+      checkCredential,
       run: () => ctx.credentials
         .modifyRecord(KEY, () => Promise.resolve({ kind: 'grant', payload: {} }))
         .then(() => undefined),
@@ -28,6 +30,7 @@ describe('authorization invariant companion', () => {
       key: KEY,
       interaction: { notify: () => {}, prompt: () => Promise.reject(new Error('unused')) },
     })).resolves.toEqual({ status: 'authorized' })
+    expect(checkCredential).not.toHaveBeenCalled()
   })
 
   it('fails a settlement that left its key in flight', async () => {

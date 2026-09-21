@@ -23,7 +23,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-请把本包作为 Loader entry 挂载到提供浏览器配置的 profile 中。本 entry 不依赖提供方是否存在而注册两个 namespace，因此缺少提供方会在调用时产生具名配置错误。它生成的 descriptor 进入严格 Typert 注册表，而 settings 与凭据 Definition 仍是普通 Cordis 服务，自身不承担任何 wire 义务。
+请把本包作为 Loader entry 挂载到提供浏览器配置的 profile 中。本 entry 不依赖提供方是否存在而注册三个 namespace，因此缺少提供方会在调用时产生具名配置错误。它生成的 descriptor 进入严格 Typert 注册表，而 settings 与凭据 Definition 仍是普通 Cordis 服务，自身不承担任何 wire 义务。
 
 `describe(refs)` 以请求的名字为键返回一份 map，因此设置页描述其各行携带的全部引用时，这些行会一起落定。单次调用最多接受 64 个名字，无效名字或空写入值报告为 `bad-request`，并逐字段复制每个答案——提供方返回超出 `CredentialInfo` 声明的内容也无法扩大跨越 wire 的字段。有效的 `set(ref, value)` 与 `unset(ref)` 调用把提供方拒绝报告为 `credential-rejected`，携带提供方的消息，details 中只有该引用。机密值只在这个方向跨越 wire：这里没有任何方法会返回它。
 
@@ -34,6 +34,8 @@ kind: "package-reference"
 -----
 
 `authorization` 通过调用方私有的 Remote 流提供已安装的 pi-ai 登录流程。浏览器只接收账号元数据、通知和问题回复凭证，不接收已存储的令牌。取消流会撤销登录尝试；撤销单个问题只清除该问题。退出登录删除所选 `llm-pi-ai` 凭据记录，不修改 settings。这些方法沿用其他配置方法的 Host、Origin 与认证检查。
+
+`authorization.describe(provider)` 以 `configured` 报告存储记录是否存在，不依赖授权服务或流程是否已安装。必填布尔字段 `nativeConfigured` 仅在可用流程提供 OAuth、本地凭据检查且没有存储记录时执行检查。缺少该能力时返回 `false`：原生凭据可用性未知，并不证明凭据缺失。即使没有流程，已存储的授权仍报告 `configured: true`。检查仅在 Host 执行；闭包和机密值均不进入 Remote 响应。
 
 <a id="configuration"></a>
 

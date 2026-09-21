@@ -45,22 +45,28 @@ export class AuthorizationController extends TypertRemoteService {
   }
 
   /**
-   * Describe sign-in methods and stored credential presence without reading a token.
+   * Describe sign-in methods, stored records, and provider-native credential availability.
    * @param provider - installed pi-ai provider identifier, never a scoped record key.
-   * @returns safe credential metadata and available sign-in methods.
+   * @returns safe credential metadata without secret values or remote credential validation.
    */
   @Remote
   async describe(provider: string): Promise<ProviderAuthorizationState> {
     const key = providerKey(provider)
-    const authorization = this.ctx.get('authorization')
     const credentials = this.ctx.get('credentials')
-    const entry = authorization?.describe(key)
-    if (entry === undefined || credentials === undefined) {
-      return { available: false, configured: false, writable: false, inFlight: false, methods: [] }
+    const info = await credentials?.describeRecord(key)
+    const entry = this.ctx.get('authorization')?.describe(key)
+    const configured = info?.configured === true
+    if (entry === undefined || info === undefined) {
+      return { available: false, configured, nativeConfigured: false, writable: false, inFlight: false, methods: [] }
     }
-    const info = await credentials.describeRecord(key)
+    let nativeConfigured = false
+    if (!configured && entry.methods.some(method => method.id === 'oauth') && entry.checkCredential !== undefined) {
+      try { nativeConfigured = await entry.checkCredential() } catch (error) {
+        throw rejected(provider, 'Could not check provider credentials', error)
+      }
+    }
     return {
-      available: true, configured: info.configured, writable: info.writable, inFlight: entry.inFlight,
+      available: true, configured, nativeConfigured, writable: info.writable, inFlight: entry.inFlight,
       methods: entry.methods.map(method => ({ id: method.id, label: method.label })),
     }
   }

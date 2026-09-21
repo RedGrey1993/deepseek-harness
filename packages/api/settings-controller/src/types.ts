@@ -43,8 +43,12 @@ export type AuthorizationPromptId = Branded<'AuthorizationPromptId'>
 
 /** Public sign-in availability and credential presence for one built-in provider. */
 export interface ProviderAuthorizationState {
+  /** Whether the Host can run this provider's registered sign-in flow. */
   readonly available: boolean
+  /** Whether a provider-owned credential record is stored, even without a sign-in flow. */
   readonly configured: boolean
+  /** Whether the provider detected native credentials without a stored account record; not a remote validity test. */
+  readonly nativeConfigured: boolean
   readonly writable: boolean
   readonly inFlight: boolean
   readonly methods: readonly { readonly id: string; readonly label: string }[]

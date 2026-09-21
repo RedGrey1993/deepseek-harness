@@ -512,21 +512,21 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       {
         signature: 'registerFlow(flow: AuthorizationFlow): () => void',
         description: 'Offer a way to obtain one credential. One flow per key: two plugins claiming the same key would each write a record in their own format, and whichever ran last would leave the other reading a payload it cannot parse.',
-        parameters: [{ name: 'flow', description: 'the key it writes, its label, its methods, and its runner.' }],
+        parameters: [{ name: 'flow', description: 'the key it writes, its label, its methods, its runner, and an optional local credential check.' }],
         returns: 'Disposer that withdraws this flow.',
         throws: ['{AuthorizationError} code `DUPLICATE_FLOW` when the key is already claimed.'],
       },
       {
         signature: 'list(): readonly AuthorizationEntry[]',
-        description: 'Every registered flow, for a surface listing what can be authorized.',
+        description: 'Every registered flow, for a surface listing what can be authorized. Credential checks are neither invoked nor included.',
         parameters: [],
         returns: 'one entry per flow, in registration order.',
       },
       {
-        signature: 'describe(key: CredentialKey): AuthorizationEntry | undefined',
-        description: 'One registered flow.',
+        signature: 'describe(key: CredentialKey): AuthorizationDescription | undefined',
+        description: 'Read one flow\'s metadata synchronously without invoking its credential check. Call the optional check only while the flow remains registered.',
         parameters: [{ name: 'key', description: 'the credential record to ask about.' }],
-        returns: 'the entry, or undefined when no flow claims that key.',
+        returns: 'host-only metadata and the optional check, or undefined when no flow claims that key.',
       },
       {
         signature: 'cancel(key: CredentialKey): void',
@@ -549,9 +549,9 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     methods: [
       {
         signature: '@Remote async describe(provider: string): Promise<ProviderAuthorizationState>',
-        description: 'Describe sign-in methods and stored credential presence without reading a token.',
+        description: 'Describe sign-in methods, stored records, and provider-native credential availability.',
         parameters: [{ name: 'provider', description: 'installed pi-ai provider identifier, never a scoped record key.' }],
-        returns: 'safe credential metadata and available sign-in methods.',
+        returns: 'safe credential metadata without secret values or remote credential validation.',
       },
       {
         signature: '@Remote({ mode: \'stream\' }) async *login(provider: string, method: string, signal: AbortSignal): AsyncIterable<ProviderAuthorizationFrame>',
@@ -4588,12 +4588,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AuthorizationAttemptId = Branded<\'AuthorizationAttemptId\'>;',
   },
   {
+    name: 'AuthorizationDescription',
+    declaration: 'export interface AuthorizationDescription extends AuthorizationEntry {\n    readonly checkCredential?: AuthorizationFlow[\'checkCredential\'];\n}',
+  },
+  {
     name: 'AuthorizationEntry',
     declaration: 'export interface AuthorizationEntry {\n    key: CredentialKey;\n    label: string;\n    methods: readonly AuthorizationMethod[];\n    inFlight: boolean;\n}',
   },
   {
     name: 'AuthorizationFlow',
-    declaration: 'export interface AuthorizationFlow {\n    readonly key: CredentialKey;\n    readonly label: string;\n    readonly methods: readonly [\n        AuthorizationMethod,\n        ...AuthorizationMethod[]\n    ];\n    run(session: AuthorizationSession): Promise<void>;\n}',
+    declaration: 'export interface AuthorizationFlow {\n    readonly key: CredentialKey;\n    readonly label: string;\n    readonly methods: readonly [\n        AuthorizationMethod,\n        ...AuthorizationMethod[]\n    ];\n    checkCredential?(): Promise<boolean>;\n    run(session: AuthorizationSession): Promise<void>;\n}',
   },
   {
     name: 'AuthorizationInteraction',
@@ -6033,7 +6037,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ProviderAuthorizationState',
-    declaration: 'export interface ProviderAuthorizationState {\n    readonly available: boolean;\n    readonly configured: boolean;\n    readonly writable: boolean;\n    readonly inFlight: boolean;\n    readonly methods: readonly {\n        readonly id: string;\n        readonly label: string;\n    }[];\n}',
+    declaration: 'export interface ProviderAuthorizationState {\n    readonly available: boolean;\n    readonly configured: boolean;\n    readonly nativeConfigured: boolean;\n    readonly writable: boolean;\n    readonly inFlight: boolean;\n    readonly methods: readonly {\n        readonly id: string;\n        readonly label: string;\n    }[];\n}',
   },
   {
     name: 'ProviderRequestId',

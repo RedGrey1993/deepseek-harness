@@ -64,6 +64,8 @@ dispose()                         // unregister; withdraws any running attempt
 
 A flow declares the credential record it writes, a user-facing label, and the sign-in methods it offers, most preferred first. `run()` talks to the human through the session — one-way notices and questions the flow cannot answer for itself — and must commit the record through `ctx.credentials` before resolving: the seam refuses a flow that resolved without committing. `list()` and `describe()` let a surface show what can be authorized and whether an attempt is running; `dispose()` unregisters the flow and withdraws any attempt still running.
 
+A flow may also provide a host-only `checkCredential(): Promise<boolean>` for local credential detection. Synchronous `describe()` returns an `AuthorizationDescription` extending the wire-safe `AuthorizationEntry` with that optional closure; it does not run the check. `list()` returns metadata only, without invoking or exposing the closure. A check must not start login, prompt, refresh credentials, or validate them remotely; its boolean is not proof that a real account or request will work.
+
 ### Running an attempt
 
 A surface runs one attempt per credential at a time. The interaction travels with the request rather than living in a registry, so prompts reach exactly the page that asked; a headless caller supplies an interaction that declines. `begin()` reports `{ status: 'authorized' }` when the record was committed and observed during the attempt, and `{ status: 'cancelled' }` when the human declined or the caller withdrew. `cancel(key)` withdraws the running attempt from a second call, for the request/response transport that answers a Cancel button without holding the first call's signal.

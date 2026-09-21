@@ -8,7 +8,7 @@
   - button "打开配置文件"
   - button "关闭"
   - heading "模型" [level=2]
-  - paragraph: 填入各提供商的 API 密钥即可使用其模型。
+  - paragraph: 配置 API 密钥或登录账号，即可使用各提供方的模型。
   - list
   - tablist "添加方式":
     - tab "第三方模型提供商" [selected]

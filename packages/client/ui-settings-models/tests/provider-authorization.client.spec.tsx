@@ -12,24 +12,24 @@ import { en } from '../src/client/locales.ts'
 afterEach(cleanup)
 
 const state: ProviderAuthorizationState = {
-  available: true, configured: false, inFlight: false, writable: true,
+  available: true, configured: false, nativeConfigured: false, inFlight: false, writable: true,
   methods: [{ id: 'oauth', label: 'ChatGPT' }],
 }
 
-function fixture(local = true) {
+function fixture(local = true, provider = 'openai-codex', account = state) {
   let receive: ((frame: ProviderAuthorizationFrame) => void) | undefined
   let signal: AbortSignal | undefined
   let settle: (() => void) | undefined
   const remote = {
     $host: { isLoopback: local },
     authorization: {
-      describe: vi.fn(async () => ({ ok: true, value: state })),
+      describe: vi.fn(async () => ({ ok: true, value: account })),
       answer: vi.fn(async () => ({ ok: true, value: undefined })),
       logout: vi.fn(async () => ({ ok: true, value: undefined })),
     },
   }
   const operations = createModelsOperations({ remote } as never)
-  operations.loginAuthorization = vi.fn<ModelsOperations['loginAuthorization']>(async (_provider, _method, abortSignal, callback) => {
+  const login = vi.fn<ModelsOperations['loginAuthorization']>(async (_provider, _method, abortSignal, callback) => {
     signal = abortSignal
     receive = callback
     await new Promise<void>((resolve) => {
@@ -37,10 +37,11 @@ function fixture(local = true) {
       abortSignal.addEventListener('abort', () => { resolve() }, { once: true })
     })
   })
+  operations.loginAuthorization = login
   const changed = vi.fn()
-  const props = { provider: 'openai-codex', operations, t: (key: keyof typeof en) => en[key],
+  const props = { provider, operations, t: (key: keyof typeof en) => en[key],
     readOnly: false, overridden: false, onChanged: changed }
-  return { props, remote, changed,
+  return { props, remote, changed, login,
     send: (frame: ProviderAuthorizationFrame) => { receive?.(frame) },
     finish: () => { settle?.() }, aborted: () => signal?.aborted }
 }
@@ -72,6 +73,27 @@ describe('provider authorization', () => {
     act(() => { f.send({ type: 'outcome', status: 'authorized' }); f.finish() })
     await waitFor(() => { expect(f.changed).toHaveBeenCalledOnce() })
     expect(screen.queryByText('ABCD-1234')).toBeNull()
+    expect(screen.getByText(en.oauthSaved)).toBeTruthy()
+  })
+
+  it('retains the xAI device URL and code during progress without requiring a callback prompt', async () => {
+    const f = fixture(true, 'xai', { ...state, methods: [
+      { id: 'oauth', label: 'Sign in with SuperGrok or X Premium' },
+      { id: 'api-key', label: 'xAI API key' },
+    ] })
+    const view = await start(f)
+    act(() => {
+      f.send({ type: 'notice', message: 'Authorize xAI', url: 'https://auth.x.ai/device', code: 'XAI-1234' })
+      f.send({ type: 'notice', message: 'Waiting for authorization' })
+    })
+    expect(f.login).toHaveBeenCalledWith('xai', 'oauth', expect.any(AbortSignal), expect.any(Function))
+    expect(screen.getByRole('link', { name: en.oauthOpenPage }).getAttribute('href')).toBe('https://auth.x.ai/device')
+    expect(screen.getByText('XAI-1234')).toBeTruthy()
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(screen.queryByText(/ChatGPT/)).toBeNull()
+    expect(view.container.textContent).toMatchSnapshot()
+    act(() => { f.send({ type: 'outcome', status: 'authorized' }); f.finish() })
+    await waitFor(() => { expect(f.changed).toHaveBeenCalledOnce() })
     expect(screen.getByText(en.oauthSaved)).toBeTruthy()
   })
 

@@ -139,6 +139,20 @@ export function registerPiAiFlows(ctx: Context, auth: PiAiAuthInjection): void {
       key: recordKeyFor(providerId),
       label: provider.name,
       methods: [first, ...rest],
+      async checkCredential() {
+        // One record snapshot prevents a concurrent sign-in from entering OAuth refresh.
+        const credential = await auth.credentials.read(providerId)
+        if (credential?.type === 'oauth') return provider.auth.oauth !== undefined
+        const apiKey = provider.auth.apiKey
+        if (apiKey === undefined) return false
+        const input = {
+          ctx: auth.authContext,
+          signal: new AbortController().signal,
+          ...credential === undefined ? {} : { credential },
+        }
+        const result = apiKey.check === undefined ? await apiKey.resolve(input) : await apiKey.check(input)
+        return result !== undefined
+      },
       async run(session) {
         // A collection of its own, holding only the provider being signed
         // into: login is not serving requests, and the credential it produces

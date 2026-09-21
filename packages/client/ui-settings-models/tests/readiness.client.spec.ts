@@ -61,12 +61,53 @@ describe('providerUsable', () => {
     expect(providerUsable(otherRow({ credential: undefined }))).toBe(false)
   })
 
-  it('treats a reference-free registered route as provider-native authentication', () => {
-    expect(providerUsable(otherRow({ apiKeyEnv: undefined, credential: undefined }))).toBe(true)
+  it('preserves native authentication for custom routes and installed providers without OAuth', () => {
+    const native = otherRow({ apiKeyEnv: undefined, credential: undefined })
+    expect(providerUsable({ ...native, entry: { ...native.entry, declared: true } })).toBe(true)
+    expect(providerUsable({ ...native, authorization: {
+      available: true, configured: false, nativeConfigured: false, writable: true, inFlight: false,
+      methods: [{ id: 'api-key', label: 'API key' }],
+    } })).toBe(true)
+  })
+
+  it.each(['xai', 'openai-codex'])('requires credential evidence for the installed OAuth provider %s', (provider) => {
+    const native = otherRow({ apiKeyEnv: undefined, credential: undefined })
+    const account = { available: true, configured: false, nativeConfigured: false, writable: true, inFlight: false,
+      methods: [{ id: 'oauth', label: 'Account' },
+        ...provider === 'xai' ? [{ id: 'api-key', label: 'API key' }] : []] }
+    const candidate = { ...native, entry: { ...native.entry, provider } }
+    expect(providerUsable(candidate)).toBe(false)
+    expect(providerUsable({ ...candidate, authorization: account })).toBe(false)
+    expect(providerUsable({ ...candidate, authorization: { ...account, configured: true } })).toBe(true)
+    expect(providerUsable({ ...candidate, authorization: account,
+      derivedCredential: { configured: true, writable: false, source: 'env' } })).toBe(false)
+    expect(providerUsable({ ...candidate, authorization: { ...account, nativeConfigured: true } })).toBe(true)
+    expect(providerUsable({ ...candidate, authorization: { ...account, configured: true },
+      apiKeyEnv: 'OVERRIDE', credential: missingCredential })).toBe(false)
   })
 })
 
 describe('onboardingReadiness', () => {
+  it.each(['kimi-coding', 'github-copilot'])('accepts provider-confirmed native credentials for %s', (provider) => {
+    const native = otherRow({ apiKeyEnv: undefined, credential: undefined })
+    const configured = { ...native, entry: { ...native.entry, provider },
+      authorization: { available: true, configured: false, nativeConfigured: true, writable: true, inFlight: false,
+        methods: [{ id: 'oauth', label: 'Account' }, { id: 'api-key', label: 'Key' }] } }
+    expect(onboardingReadiness(state({ rows: [row(), configured] }))).toEqual({ kind: 'provider-ready' })
+    expect(onboardingReadiness(state({ rows: [row(), { ...configured,
+      authorization: { ...configured.authorization, nativeConfigured: false },
+      derivedCredential: { configured: true, writable: true },
+    }] }))).toEqual({ kind: 'credential-missing' })
+  })
+
+  it.each([false, true])('does not infer Codex readiness from unavailable login methods: stored %s', (stored) => {
+    const native = otherRow({ apiKeyEnv: undefined, credential: undefined })
+    const codex = { ...native, entry: { ...native.entry, provider: 'openai-codex' },
+      authorization: { available: false, configured: stored, nativeConfigured: false, writable: false, inFlight: false, methods: [] } }
+    expect(onboardingReadiness(state({ rows: [row(), codex] })))
+      .toEqual({ kind: stored ? 'provider-ready' : 'credential-missing' })
+  })
+
   it('waits for the first join and skips onboarding when the adapter directory entry is absent', () => {
     expect(onboardingReadiness(state({ status: 'idle', rows: [] }))).toEqual({ kind: 'loading' })
     expect(onboardingReadiness(state({ status: 'loading', rows: [] }))).toEqual({ kind: 'loading' })

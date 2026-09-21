@@ -1,0 +1,39 @@
+- dialog "Settings":
+  - navigation:
+    - text: Settings
+    - button "General":
+      - img
+      - text: General
+    - button "Models":
+      - img
+      - text: Models
+    - button "Built-in plugins":
+      - img
+      - text: Built-in plugins
+    - button "Agent presets":
+      - img
+      - text: Agent presets
+    - button "Archived sessions":
+      - img
+      - text: Archived sessions
+  - button "Open configuration file"
+  - button "Close":
+    - img
+    - text: Close
+  - heading "Models" [level=2]
+  - paragraph: Configure API keys or sign in to use models from the following providers.
+  - list:
+    - listitem:
+      - text: kimi-coding
+      - img "Authentication configured"
+      - button "Edit kimi-coding": Edit
+    - listitem:
+      - text: DeepSeek
+      - img "API key missing"
+      - button "Edit DeepSeek (deepseek-official)": Edit
+  - button "Add provider":
+    - img
+    - text: Add provider
+  - button "Add a custom provider":
+    - img
+    - text: Add a custom provider

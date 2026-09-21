@@ -75,8 +75,8 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     await openSettings(page, 'zh')
     const dialog = page.getByRole('dialog', { name: '设置' })
     await dialog.waitFor({ timeout: 10_000 })
-    await dialog.getByRole('button', { name: '模型', exact: true }).click()
-    await dialog.getByText('填入各提供商的 API 密钥即可使用其模型。').waitFor({ timeout: 10_000 })
+    await dialog.getByRole('button', { name: '模型' }).click()
+    await dialog.getByText('配置 API 密钥或登录账号，即可使用各提供方的模型。').waitFor({ timeout: 10_000 })
     // The dormant pi-ai adapter contributes its whole installed catalog; no
     // provider is configured yet, so the page is one add button.
     const add = dialog.getByRole('button', { name: '添加模型提供商' })
@@ -376,7 +376,8 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
         await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), MODE)
       await dialog.getByRole('button', { name: '保存', exact: true }).click()
       await types.waitFor({ state: 'detached' })
-      expect(await readFile(join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')).toBe(before)
+      expect(await readFile(join(scaffold.harnessHome, 'settings.yaml'), 'utf8')).toBe(before)
+      await dialog.getByText('已保存 openai。', { exact: true }).waitFor()
 
       await edit.click()
       await dialog.getByText('自定义设置').click()

@@ -90,7 +90,7 @@ export interface ProviderRow {
    * own derivation rule.
    */
   derivedCredential?: CredentialInfo
-  /** Safe account metadata for the built-in Codex route. */
+  /** Safe account metadata and login methods for an installed pi-ai provider. */
   authorization?: ProviderAuthorizationState
 }
 
@@ -180,11 +180,13 @@ export class ModelsSettingsStore {
    * settings answer in parallel, then one batched credential describe over
    * every referenced ref. Provider failure or absence of an initial settings
    * answer keeps the last good rows and surfaces an error; a failed settings
-   * refresh reuses the mirror's held view.
+   * refresh reuses the mirror's held view. Failed account reads retain the
+   * same installed provider's last-confirmed metadata with a credential error.
    * @returns nothing; the snapshot carries the outcome.
    */
   async load(): Promise<void> {
     const generation = ++this.generation
+    const previousRows = this.store.getSnapshot().rows
     this.store.update((s) => { s.status = 'loading'; s.error = null })
     const [registered, declared] = await Promise.all([
       this.ctx.remote.llm.listProviders(),
@@ -236,11 +238,21 @@ export class ModelsSettingsStore {
       if (response.ok) credentials = response.value
       else credentialError = response.error.message
     }
-    const codex = rows.find(row => row.entry.settingsNs === 'llm-pi-ai' && row.entry.provider === 'openai-codex')
-    if (codex !== undefined && this.ctx.remote.$host.isLoopback) {
-      const response = await this.ctx.remote.authorization.describe('openai-codex')
-      if (response.ok) codex.authorization = response.value
-      else credentialError ??= response.error.message
+    if (this.ctx.remote.$host.isLoopback) {
+      const accounts = rows.filter(row => row.entry.settingsNs === 'llm-pi-ai' && row.entry.declared !== true)
+      const responses = await Promise.all(accounts.map(async row => ({
+        row, response: await this.ctx.remote.authorization.describe(row.entry.provider),
+      })))
+      for (const { row, response } of responses) {
+        if (response.ok) row.authorization = response.value
+        else {
+          credentialError ??= response.error.message
+          // A transient read failure must not unmount an active sign-in card.
+          const previous = previousRows.find(candidate => candidate.entry.provider === row.entry.provider
+            && candidate.entry.settingsNs === row.entry.settingsNs)
+          if (previous?.authorization !== undefined) row.authorization = previous.authorization
+        }
+      }
     }
     if (generation !== this.generation) return
     this.store.update((s) => {
@@ -275,10 +287,11 @@ export class ModelsSettingsStore {
 /**
  * Whether a joined row can serve model requests as it stands: the route is
  * registered with the adapter registry, and whatever credential its resolved
- * profile names is stored. A profile naming no reference authenticates through
- * the provider's own path (the Bedrock chain, Vertex ADC, a gateway that needs
- * nothing), as does a live route with no settings address at all, so neither
- * owes this page a key.
+ * profile names is stored. Installed pi-ai routes require an authorization
+ * description before readiness can be inferred. OAuth-capable routes need a
+ * stored account credential or provider-confirmed native credentials; missing
+ * authorization capabilities alone never establish readiness. Other known
+ * reference-free routes retain native authentication (Bedrock, Vertex ADC, or an open gateway).
  * @param row - one joined provider row.
  * @returns whether the user already has this provider to talk to.
  */
@@ -286,8 +299,11 @@ export function providerUsable(row: ProviderRow): boolean {
   if (!row.entry.active) return false
   if (row.entry.provider === 'deepseek-account') return row.accountAvailable === true
   if (row.apiKeyEnv === undefined) {
-    if (row.entry.settingsNs === 'llm-pi-ai' && row.entry.provider === 'openai-codex') {
-      return row.authorization?.configured === true
+    if (row.entry.settingsNs === 'llm-pi-ai' && row.entry.declared !== true) {
+      const authorization = row.authorization
+      if (authorization === undefined) return false
+      if (authorization.configured || authorization.nativeConfigured) return true
+      if (!authorization.available || authorization.methods.some(method => method.id === 'oauth')) return false
     }
     return true
   }

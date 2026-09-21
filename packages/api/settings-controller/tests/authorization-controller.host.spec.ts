@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Authorization from '@deepseek-ai/dsh-authorization'
 import type { AuthorizationSession } from '@deepseek-ai/dsh-authorization'
@@ -47,10 +47,102 @@ describe('caller-private provider authorization', () => {
     contexts.push(ctx)
     await ctx.plugin(AuthorizationController)
     expect(await ctx.authorizationController.describe('openai-codex')).toEqual({
-      available: false, configured: false, writable: false, inFlight: false, methods: [],
+      available: false, configured: false, nativeConfigured: false, writable: false, inFlight: false, methods: [],
     })
     await expect(ctx.authorizationController.describe('unrelated/openai-codex')).rejects.toMatchObject({ code: 'gateway/bad-request' })
     await expect(ctx.authorizationController.logout('openai-codex')).rejects.toMatchObject({ code: 'gateway/internal' })
+  })
+
+  it('projects provider-owned native checks without returning the checker or any secret', async () => {
+    const ctx = await boot(async () => {})
+    const nativeKey = credentialKey('llm-pi-ai', 'kimi-coding')
+    let present = true
+    const checkCredential = vi.fn(async () => present)
+    ctx.authorization.registerFlow({ key: nativeKey, label: 'Kimi',
+      methods: [{ id: 'oauth', label: 'Account' }, { id: 'api-key', label: 'API key' }],
+      checkCredential, run: async () => {},
+    })
+    expect(await ctx.authorizationController.describe('kimi-coding')).toEqual({
+      available: true, configured: false, nativeConfigured: true, writable: true, inFlight: false,
+      methods: [{ id: 'oauth', label: 'Account' }, { id: 'api-key', label: 'API key' }],
+    })
+    present = false
+    expect(await ctx.authorizationController.describe('kimi-coding')).toMatchObject({ nativeConfigured: false })
+    expect(checkCredential).toHaveBeenCalledTimes(2)
+    await ctx.credentials.modifyRecord(nativeKey, () => Promise.resolve({ kind: 'grant', payload: { token: 'private-native-token' } }))
+    const stored = await ctx.authorizationController.describe('kimi-coding')
+    expect(stored).toMatchObject({ configured: true, nativeConfigured: false })
+    expect(checkCredential).toHaveBeenCalledTimes(2)
+    expect(JSON.stringify(stored)).not.toContain('private-native-token')
+    expect(stored).not.toHaveProperty('checkCredential')
+  })
+
+  it.each([false, true])('does not invoke a retired checker after the record read: replacement %s', async (replace) => {
+    const ctx = await boot(async () => {})
+    const nativeKey = credentialKey('llm-pi-ai', 'checker-lifetime')
+    const retired = vi.fn(async () => true)
+    const replacement = vi.fn(async () => false)
+    const remove = ctx.authorization.registerFlow({ key: nativeKey, label: 'Native',
+      methods: [{ id: 'oauth', label: 'Account' }], checkCredential: retired, run: async () => {},
+    })
+    let release!: () => void
+    let reading!: () => void
+    const gate = new Promise<void>((resolve) => { release = resolve })
+    const entered = new Promise<void>((resolve) => { reading = resolve })
+    const original = ctx.credentials.describeRecord.bind(ctx.credentials)
+    const read = vi.spyOn(ctx.credentials, 'describeRecord').mockImplementationOnce(async (key) => {
+      reading()
+      await gate
+      return original(key)
+    })
+    const pending = ctx.authorizationController.describe('checker-lifetime')
+    try {
+      await entered
+      remove()
+      if (replace) ctx.authorization.registerFlow({ key: nativeKey, label: 'Replacement',
+        methods: [{ id: 'oauth', label: 'Account' }], checkCredential: replacement, run: async () => {},
+      })
+      release()
+      expect(await pending).toMatchObject({ available: replace, configured: false, nativeConfigured: false })
+      expect(retired).not.toHaveBeenCalled()
+      expect(replacement).toHaveBeenCalledTimes(replace ? 1 : 0)
+    } finally {
+      release()
+      await pending
+      read.mockRestore()
+    }
+  })
+
+  it.each([false, true])('keeps stored-record evidence independent of a missing authorization service: %s', async (stored) => {
+    const ctx = new Context()
+    contexts.push(ctx)
+    await ctx.plugin(MemoryCredentials)
+    await ctx.plugin(AuthorizationController)
+    if (stored) await commit(ctx)
+    expect(await ctx.authorizationController.describe('openai-codex')).toEqual({
+      available: false, configured: stored, nativeConfigured: false, writable: false, inFlight: false, methods: [],
+    })
+  })
+
+  it('does not interrogate unrelated API-key-only providers during account reads', async () => {
+    const ctx = await boot(async () => {})
+    const checkCredential = vi.fn(async () => true)
+    ctx.authorization.registerFlow({ key: credentialKey('llm-pi-ai', 'key-only'), label: 'Key',
+      methods: [{ id: 'api-key', label: 'Key' }], checkCredential, run: async () => {},
+    })
+    expect(await ctx.authorizationController.describe('key-only')).toMatchObject({ nativeConfigured: false })
+    expect(checkCredential).not.toHaveBeenCalled()
+  })
+
+  it('does not return credential-check failures that could contain secrets', async () => {
+    const ctx = await boot(async () => {})
+    ctx.authorization.registerFlow({ key: credentialKey('llm-pi-ai', 'check-fails'), label: 'Check',
+      methods: [{ id: 'oauth', label: 'Account' }],
+      checkCredential: () => Promise.reject(new Error('token=private-check-token')), run: async () => {},
+    })
+    await expect(ctx.authorizationController.describe('check-fails')).rejects.toMatchObject({
+      code: 'authorization/rejected', message: 'Could not check provider credentials',
+    })
   })
 
   it('streams the URL and device code then reports persisted success without leaking the token', async () => {

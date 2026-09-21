@@ -69,12 +69,52 @@ describe('AuthorizationService registry', () => {
       inFlight: false,
     }])
     expect(ctx.authorization.describe(KEY)?.label).toBe('ChatGPT (Codex)')
+    expect(ctx.authorization.describe(KEY)).not.toHaveProperty('checkCredential')
     expect(ctx.authorization.describe(OTHER)).toBeUndefined()
 
     dispose()
 
     expect(ctx.authorization.list()).toEqual([])
     expect(ctx.authorization.describe(KEY)).toBeUndefined()
+  })
+
+  it('offers a lazy host credential check without including it in listed metadata', async () => {
+    const ctx = await harness()
+    const checkCredential = vi.fn(() => Promise.resolve(true))
+    const dispose = ctx.authorization.registerFlow({ ...committingFlow(ctx), checkCredential })
+
+    const description = ctx.authorization.describe(KEY)
+    expect(description?.inFlight).toBe(false)
+    expect(description?.checkCredential).toBeTypeOf('function')
+    expect(ctx.authorization.list()).toEqual([{
+      key: KEY,
+      label: 'ChatGPT (Codex)',
+      methods: [{ id: 'oauth', label: 'Sign in with ChatGPT' }, { id: 'api-key', label: 'Paste a key' }],
+      inFlight: false,
+    }])
+    expect(checkCredential).not.toHaveBeenCalled()
+
+    await expect(description?.checkCredential?.()).resolves.toBe(true)
+    checkCredential.mockResolvedValueOnce(false)
+    await expect(description?.checkCredential?.()).resolves.toBe(false)
+    expect(checkCredential).toHaveBeenCalledTimes(2)
+
+    dispose()
+    expect(ctx.authorization.describe(KEY)).toBeUndefined()
+    expect(ctx.authorization.list()).toEqual([])
+    expect(checkCredential).toHaveBeenCalledTimes(2)
+  })
+
+  it('leaves a credential check failure with its caller without marking an attempt in flight', async () => {
+    const ctx = await harness()
+    const failure = new Error('credential source unavailable')
+    const checkCredential = vi.fn(() => Promise.reject(failure))
+    ctx.authorization.registerFlow({ ...committingFlow(ctx), checkCredential })
+
+    const description = ctx.authorization.describe(KEY)
+    expect(checkCredential).not.toHaveBeenCalled()
+    await expect(description?.checkCredential?.()).rejects.toBe(failure)
+    expect(ctx.authorization.describe(KEY)?.inFlight).toBe(false)
   })
 
   it('refuses a second flow for the same key', async () => {

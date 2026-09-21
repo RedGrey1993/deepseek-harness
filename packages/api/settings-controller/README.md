@@ -35,6 +35,8 @@ Mount this package as a Loader entry in a profile that serves browser configurat
 
 `authorization` exposes the installed pi-ai sign-in flows through a caller-private Remote stream. The browser receives account metadata, notices, and prompt capabilities, never stored tokens. Stream cancellation withdraws the attempt; a prompt withdrawal only clears that prompt. Sign-out deletes the selected `llm-pi-ai` credential record without changing settings. These methods use the same authenticated Host and Origin checks as the other configuration methods.
 
+`authorization.describe(provider)` reports stored-record presence as `configured`, independently of whether an authorization service or flow is installed. Its required `nativeConfigured` boolean is checked only when an available flow offers OAuth, has a local credential check, and has no stored record. Without that capability it returns `false`: native availability is unknown, not proof of missing credentials. A stored grant still reports `configured: true` without a flow. The check stays on the Host; neither its closure nor secret values enter the Remote response.
+
 <a id="configuration"></a>
 
 ## Configuration
