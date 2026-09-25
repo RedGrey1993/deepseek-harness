@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import Loader from '@deepseek-ai/cordis-plugin-loader'
+import Loader, { type ModuleLoaderV2 } from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import Authorization from '@deepseek-ai/dsh-authorization'
 import { credentialKey } from '@deepseek-ai/dsh-credentials'
@@ -57,13 +57,19 @@ it('loads sign-in from cordis.yml and persists only the provider grant', async (
     ctx.baseUrl = `${pathToFileURL(root).href}/`
     await ctx.plugin(Loader)
     ctx.loader.builtins.include = Include
-    ctx.loader.internal = {
+    const internal: ModuleLoaderV2 = {
       version: 'v2',
+      loadCache: new Map(),
       async import(specifier: string) {
         if (!modules.has(specifier)) throw new Error(`Unexpected Loader import: ${specifier}`)
         return modules.get(specifier)
       },
-    } as unknown as NonNullable<typeof ctx.loader.internal>
+      register(): never { throw new Error('unexpected module hook registration') },
+      getOrCreateModuleJob(): never { throw new Error('unexpected module job creation') },
+      resolveSync(): never { throw new Error('unexpected synchronous module resolution') },
+      load(): never { throw new Error('unexpected module load') },
+    }
+    ctx.loader.internal = internal
     await ctx.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
     await ctx.loader.await()
     const controller = ctx.authorizationController
