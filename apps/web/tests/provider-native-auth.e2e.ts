@@ -111,11 +111,11 @@ describe.skipIf(MODE === 'record')('web e2e: provider-native credentials and una
       provider: 'kimi-coding', model: 'kimi-for-coding', maxTokens: 32,
       messages: [createUserMessage({
         content: [{ type: 'text', text: 'Reply with a short acknowledgement. Do not call tools.' }],
-        source: { kind: 'plugin', plugin: 'native-auth-browser-test' },
+        source: { kind: 'user' },
       })],
     })) assembler.push(chunk)
     expect(assembler.finish).toEqual({ kind: 'stop' })
-    expect(assembler.message({ kind: 'model', provider: 'kimi-coding', model: 'kimi-for-coding' }).content)
+    expect(assembler.message({ provider: 'kimi-coding', model: 'kimi-for-coding' }).content)
       .toEqual([{ type: 'text', text: KIMI_REPLY }])
     expect(network.requests).toHaveLength(1)
     expect(network.requests[0]).toMatchObject({

@@ -281,6 +281,7 @@ async function binaryTree() {
 }
 void binaryTree
 `)
+  })
   it.each([
     'node_modules/@deepseek-ai/dsh-typert-protocol',
     'node_modules/.pnpm/protocol/node_modules/@deepseek-ai/dsh-typert-protocol',
