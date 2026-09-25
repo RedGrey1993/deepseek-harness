@@ -74,6 +74,22 @@ async function harness(): Promise<Context> {
 }
 
 describe('catalog-route model discovery', () => {
+  it.each([
+    ['xai', 'grok-4.7'],
+    ['openai-codex', 'gpt-6-sol'],
+    ['openai-codex', 'gpt-6-luna'],
+  ])('offers %s/%s without resolving credentials', async (provider, id) => {
+    const resolveStoredProfile = vi.fn(() => { throw new Error('catalog discovery must not read credentials') })
+    const models = await discoverModels({ provider }, resolveStoredProfile)
+    const model = models.find(model => model.id === id)
+    expect(model).toMatchObject({
+      id, inputModalities: ['text', 'image'],
+    })
+    expect(model?.contextWindow).toBeGreaterThan(0)
+    expect(model?.maxTokens).toBeGreaterThan(0)
+    expect(resolveStoredProfile).not.toHaveBeenCalled()
+  })
+
   it('includes the installed model input types for vision models', async () => {
     const ctx = await harness()
     const models = await ctx.llm.discoverModels('llm-pi-ai', { provider: 'openai' })

@@ -27,11 +27,11 @@
   en: a4604c4384f3d644
   zh: 13e7c72a57296f32
 /deepseek-ai-dsh-llm-pi-ai/use-this-package/resolve-the-model-catalog:
-  en: 376f83206858b601
-  zh: 38bb6993609c96a6
+  en: dce1530776c85f7e
+  zh: d5319cf0308cd356
 /deepseek-ai-dsh-llm-pi-ai/use-this-package/run-with-reasoning-and-wire-compatibility:
-  en: 86b456496b54854e
-  zh: ff77ca11d39ba8d2
+  en: 901a965f9993b427
+  zh: 26f4e9995d8b1adf
 /deepseek-ai-dsh-llm-pi-ai/use-this-package/change-configuration-at-runtime:
   en: 92f554e1718614ca
   zh: f17ed3ad3e5d28e2
@@ -87,8 +87,8 @@
   en: b6bd570c0159ba08
   zh: 7d2d91eea6a8d830
 /deepseek-ai-dsh-llm-pi-ai/known-limitations-and-deferred-work:
-  en: a8dad0e7655da832
-  zh: 00ec5197473f122d
+  en: 9a5e9dcd11b60ffe
+  zh: 264727dd286754de
 /deepseek-ai-dsh-llm-pi-ai/known-limitations-and-deferred-work/dev-note:
   en: be67a4547256efbf
   zh: 8c32799683ba292c

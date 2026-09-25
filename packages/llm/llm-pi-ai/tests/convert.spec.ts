@@ -259,17 +259,30 @@ describe('toPiContext', () => {
     expect(message.content[0]).toEqual({ type: 'toolCall', id: 'c1', name: 'f', arguments: {} })
   })
 
-  it('parses non-object argument JSON (arrays, scalars) to {}', () => {
+  it.each(['[1,2]', 'null', 'true', '42', '"text"'])('parses non-object argument JSON %s to {}', (argumentsJson) => {
     const context = toPiContext({
       provider: 'deepseek',
       model: 'm',
       messages: [createMessage({
         role: 'assistant',
-        content: [{ type: 'tool-call', id: ToolCallId('c1'), name: 'f', arguments: '[1,2]' }],
+        content: [{ type: 'tool-call', id: ToolCallId('c1'), name: 'f', arguments: argumentsJson }],
         source: { kind: 'model', provider: 'deepseek', model: 'm' },
       })],
     })
     expect((context.messages[0] as AssistantMessage).content[0]).toMatchObject({ arguments: {} })
+  })
+
+  it('preserves nested JSON values in historical tool arguments', () => {
+    const args = { items: [null, true, 3, 'text', { nested: [false] }], empty: {} }
+    const context = toPiContext({
+      provider: 'deepseek', model: 'm',
+      messages: [createMessage({
+        role: 'assistant',
+        content: [{ type: 'tool-call', id: ToolCallId('c1'), name: 'f', arguments: JSON.stringify(args) }],
+        source: { kind: 'model', provider: 'deepseek', model: 'm' },
+      })],
+    })
+    expect((context.messages[0] as AssistantMessage).content[0]).toMatchObject({ arguments: args })
   })
 
   it('recovers toolName for tool results from the preceding assistant call', () => {

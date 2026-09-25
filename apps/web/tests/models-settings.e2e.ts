@@ -415,6 +415,38 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
+  it.each([
+    { provider: 'xai', search: 'grok-4.7', ids: ['grok-4.7'] },
+    { provider: 'openai-codex', search: 'gpt-6-', ids: ['gpt-6-sol', 'gpt-6-luna'] },
+  ])('discovers and saves current $provider models', async ({ provider, search, ids }) => {
+    onTestFailed(() => saveFailureShot(page, `web-e2e-models-${provider}`))
+    await scaffold.ctx.settings.mutate('llm-pi-ai', [{ op: 'set', path: ['providers', provider], value: {} }])
+    const dialog = page.getByRole('dialog', { name: '设置', exact: true })
+    const edit = dialog.getByRole('button', { name: `编辑 ${provider}`, exact: true })
+    const picker = page.getByRole('dialog', { name: '选择要添加的模型', exact: true })
+    try {
+      await edit.click()
+      await dialog.getByText('自定义设置').click()
+      await dialog.getByRole('button', { name: '获取可用模型' }).click()
+      await picker.getByRole('searchbox', { name: '搜索模型' }).fill(search)
+      for (const id of ids) await picker.getByRole('checkbox', { name: id, exact: true }).check()
+      await compareOrRefreshGolden(join(SNAPSHOT_DIR, `${provider}-discovery.expected.md`),
+        await captureStableAria(page, '[role="dialog"][aria-label="选择要添加的模型"]', scaffold.workspaceCwd), MODE)
+      await picker.getByRole('button', { name: '添加所选' }).click()
+      await dialog.getByRole('button', { name: '保存', exact: true }).click()
+      await dialog.getByText(`已保存 ${provider}。`, { exact: true }).waitFor()
+      for (const id of ids) {
+        await expect(scaffold.ctx.llm.resolveModelInfo(provider, id))
+          .resolves.toMatchObject({ inputModalities: ['text', 'image'] })
+      }
+    } finally {
+      if (await picker.count() > 0) await picker.getByRole('button', { name: '取消', exact: true }).click()
+      await scaffold.ctx.settings.mutate('llm-pi-ai', [{ op: 'unset', path: ['providers', provider] }])
+      await edit.waitFor({ state: 'detached' })
+    }
+    expect(tripwire.pageErrors).toEqual([])
+  }, 60_000)
+
   it('confirms an identified provider deletion before removing its profile and key', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-models-delete'))
     expect(await readFile(join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')).not.toContain('openai:')
@@ -453,6 +485,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
       'configured.expected.md', 'declared-edit.expected.md', 'declared.expected.md',
       'delete.expected.md', 'empty.expected.md', 'model-picker.expected.md',
       'native-delete.expected.md', 'catalog-inputs.expected.md',
+      'xai-discovery.expected.md', 'openai-codex-discovery.expected.md',
     ])
   })
 })

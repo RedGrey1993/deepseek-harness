@@ -8,12 +8,12 @@ import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek-api-key'
 import { assemble, type AssembledResult } from './assemble.ts'
 
 /**
- * Real-API e2e for the pi-ai-backed adapter: V4 Flash defaults and
+ * Real-API e2e for the pi-ai-backed adapter: Flash defaults and
  * off/high/max reasoning. Mirrors the native adapter's StreamChunk contract
  * and exercises a replayed tool follow-up. Key-gated.
  */
 
-const FLASH = 'deepseek-v4-flash'
+const FLASH = 'deepseek-flash'
 const contexts: Context[] = []
 
 async function harness(_model: string, config: Partial<PiAiProviderProfile> = {}) {
@@ -38,7 +38,7 @@ afterEach(async () => {
 function ask(text: string): Message[] {
   return [createUserMessage({
     content: [{ type: 'text', text }],
-    source: { kind: 'model', provider: 'deepseek-official', model: 'deepseek-v4-flash' },
+    source: { kind: 'model', provider: 'deepseek-official', model: 'deepseek-flash' },
   })]
 }
 
@@ -155,7 +155,7 @@ describe.skipIf(!process.env.DEEPSEEK_API_KEY)('llm-pi-ai e2e (real API)', () =>
 
     const prompt = ask('Reply with exactly the word: pong')
     const [fromDeepSeek, fromPiAi] = await Promise.all([
-      assemble(deepseekCtx, { provider: 'deepseek-official', model: FLASH, messages: prompt, maxTokens: 50 }),
+      assemble(deepseekCtx, { provider: 'deepseek-official', model: 'deepseek-v4-flash', messages: prompt, maxTokens: 50 }),
       assemble(piCtx, { model: FLASH, messages: prompt, maxTokens: 50 }),
     ])
     expect(blockKinds(fromPiAi)).toEqual(blockKinds(fromDeepSeek))
