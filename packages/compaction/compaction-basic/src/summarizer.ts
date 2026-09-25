@@ -11,6 +11,13 @@ import type {
 } from '@deepseek-ai/dsh-llm'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    /** Final instruction supplied to one private compaction summarization request. */
+    'compaction-summary-instruction': { kind: 'compaction-summary-instruction' }
+  }
+}
+
 interface SummaryConfig {
   readonly summaryInstruction?: string
   readonly summarizationProvider: string
@@ -148,7 +155,7 @@ export async function summarizeWithLlm(
     ...input.messages,
     createUserMessage({
       content: [{ type: 'text', text: config.summaryInstruction ?? COMPACTION_INSTRUCTION }],
-      source: { kind: 'plugin', plugin: 'dsh-compaction-basic' },
+      source: { kind: 'compaction-summary-instruction' },
     }),
   ]
   const options: GenerateOptions = {
