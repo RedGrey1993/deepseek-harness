@@ -27,8 +27,8 @@ id: 2026-09-19-configurable-summary-instruction
 baseline: false
 changes:
   - root: "event:compaction/summary"
-    previous: "2026-09-14-image-offload"
-    after: "5fb91376a6580939452fec2922a545a57406dbb6320753b5d51cf086898164db"
+    previous: "2026-09-16-session-format-v4"
+    after: "3ee7d7f3f55d79f601b568476209f30730d28d7c6e9cf0d4550aa59aee3ed084"
     decision: same-version
 ```
 

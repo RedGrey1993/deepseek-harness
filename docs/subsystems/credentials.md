@@ -81,7 +81,7 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
  * claiming the same key would each write a record in their own format, and
  * whichever ran last would leave the other reading a payload it cannot parse.
  *
- * @param flow - the key it writes, its label, its methods, and its runner.
+ * @param flow - the key it writes, its label, its methods, its runner, and an optional local credential check.
  * @returns Disposer that withdraws this flow.
  * @throws {AuthorizationError} code `DUPLICATE_FLOW` when the key is already claimed.
  */
@@ -89,16 +89,18 @@ registerFlow(flow: AuthorizationFlow): () => void
 
 /**
  * Every registered flow, for a surface listing what can be authorized.
+ * Credential checks are neither invoked nor included.
  * @returns one entry per flow, in registration order.
  */
 list(): readonly AuthorizationEntry[]
 
 /**
- * One registered flow.
+ * Read one flow's metadata synchronously without invoking its credential check.
+ * Call the optional check only while the flow remains registered.
  * @param key - the credential record to ask about.
- * @returns the entry, or undefined when no flow claims that key.
+ * @returns host-only metadata and the optional check, or undefined when no flow claims that key.
  */
-describe(key: CredentialKey): AuthorizationEntry | undefined
+describe(key: CredentialKey): AuthorizationDescription | undefined
 
 /**
  * Withdraw the attempt running for a key, if any. Separate from the

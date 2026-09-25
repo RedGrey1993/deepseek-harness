@@ -1,6 +1,28 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for 2026-09-19-configurable-summary-instruction.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-09-19-configurable-summary-instruction.md
-2026-09-19-configurable-summary-instruction.md: 6a73739c06b453a791701040e1c044b4414b3a18
-2026-09-19-configurable-summary-instruction.zh.md: 5ba5ca6fb8f8c0667d6167ef2f82eb0c67e1ca34
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-09-19-configurable-summary-instruction:
+  en: c2602d10b00a45f1
+  zh: 45fb4845f62ce647
+/2026-09-19-configurable-summary-instruction/summary:
+  en: c1feaec6950a06c6
+  zh: c7d83e0ae2f6c24e
+/2026-09-19-configurable-summary-instruction/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-09-19-configurable-summary-instruction/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-09-19-configurable-summary-instruction/compatibility:
+  en: 2dd93ff9310c63dc
+  zh: 785930d672c2e141
+/2026-09-19-configurable-summary-instruction/verification:
+  en: 163b7207355965a5
+  zh: b1615acca8849a82
+/2026-09-19-configurable-summary-instruction/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269

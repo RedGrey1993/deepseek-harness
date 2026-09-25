@@ -40,7 +40,7 @@ After startup you see a `dsh web:` line whose root URL carries a fresh process t
 
 Saved model selections override the composition default. The settings card accepts a Messages-compatible API address and a credential reference.
 
-The Web composition mounts the authorization service so Models can run the installed pi-ai Codex sign-in flow. Account tokens remain in the Harness credential store.
+The Web composition inherits the authorization service from the base bundle so Models can run the installed pi-ai account sign-in flows. Account tokens remain in the Harness credential store.
 
 ### Configuration
 

@@ -1,28 +1,22 @@
 - dialog "Settings":
   - navigation:
     - text: Settings
-    - button "General":
-      - img
-      - text: General
-    - button "Models":
-      - img
-      - text: Models
-    - button "Built-in plugins":
-      - img
-      - text: Built-in plugins
-    - button "Agent presets":
-      - img
-      - text: Agent presets
-    - button "Archived sessions":
-      - img
-      - text: Archived sessions
+    - button "General"
+    - button "Models"
+    - button "Built-in plugins"
+    - button "Agent presets"
   - button "Open configuration file"
-  - button "Close":
-    - img
-    - text: Close
+  - button "Close"
   - heading "Models" [level=2]
   - paragraph: Configure API keys or sign in to use models from the following providers.
   - list:
+    - listitem:
+      - text: DeepSeek deepseek-official API key
+      - textbox "API key":
+        - /placeholder: Enter your API key
+      - group: Customized settings
+      - button "Cancel"
+      - button "Apply"
     - listitem:
       - text: openai-codex
       - button "Edit openai-codex": Edit
@@ -34,16 +28,4 @@
       - group: Customized settings
       - button "Cancel"
       - button "Apply"
-    - listitem:
-      - text: DeepSeek deepseek-official API key
-      - textbox "API key":
-        - /placeholder: Enter your API key
-      - group: Customized settings
-      - button "Cancel"
-      - button "Apply"
-  - button "Add provider":
-    - img
-    - text: Add provider
-  - button "Add a custom provider":
-    - img
-    - text: Add a custom provider
+  - button "Add model provider"

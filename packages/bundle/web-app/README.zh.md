@@ -40,7 +40,7 @@ dsh --profile web --no-open --port 8080
 
 已保存的模型选择覆盖组合默认值。设置卡接受兼容 Messages 的 API 地址与凭据引用。
 
-Web 组合挂载授权服务，使模型页能够运行已安装的 pi-ai Codex 登录流程。账号令牌保留在 Harness 凭据存储中。
+Web 组合从 base 组合包继承授权服务，使模型页能够运行已安装的 pi-ai 账号登录流程。账号令牌保留在 Harness 凭据存储中。
 
 ### 配置
 

@@ -12,7 +12,7 @@ import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, launchWebScaffold,
   watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { newEnglishPage, saveFailureShot } from './support.ts'
+import { newEnglishPage, openSettings, saveFailureShot } from './support.ts'
 import { installKimiNativeFixture, KIMI_MESSAGES_URL, KIMI_NATIVE_KEY, KIMI_REPLY } from './kimi-native-fixture.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/provider-native-auth', import.meta.url))
@@ -92,7 +92,7 @@ describe.skipIf(MODE === 'record')('web e2e: provider-native credentials and una
       .toEqual([])
 
     // A successful Settings click requires completed onboarding, not just a momentary absence of its dialog.
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await openSettings(page, 'en')
     const settings = page.getByRole('dialog', { name: 'Settings' })
     await settings.getByRole('button', { name: 'Models', exact: true }).click()
     await settings.getByRole('button', { name: 'Edit kimi-coding', exact: true }).waitFor()
@@ -104,7 +104,7 @@ describe.skipIf(MODE === 'record')('web e2e: provider-native credentials and una
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'kimi-native.expected.md'),
       await captureStableAria(page, '[role="dialog"]', host.workspaceCwd), MODE)
 
-    const settingsBefore = await readFile(join(host.harnessHome, 'settings.yaml'), 'utf8')
+    const settingsBefore = await readFile(join(host.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')
     expect(settingsBefore).not.toContain('apiKeyEnv')
     const assembler = new BlockAssembler()
     for await (const chunk of host.ctx.llm.stream({
@@ -124,7 +124,7 @@ describe.skipIf(MODE === 'record')('web e2e: provider-native credentials and una
     })
     expect((await host.ctx.credentials.listRecords()).filter(record => credentialKeyScope(record.key) === 'llm-pi-ai'))
       .toEqual([])
-    expect(await readFile(join(host.harnessHome, 'settings.yaml'), 'utf8')).toBe(settingsBefore)
+    expect(await readFile(join(host.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')).toBe(settingsBefore)
     expect(await page.content()).not.toContain(KIMI_NATIVE_KEY)
     expect(network.unexpected).toEqual([])
     expect(browserExternal).toEqual([])
@@ -144,7 +144,7 @@ describe.skipIf(MODE === 'record')('web e2e: provider-native credentials and una
       await captureStableAria(page, '[role="dialog"]', host.workspaceCwd), MODE)
     await onboarding.getByRole('button', { name: 'Configure later', exact: true }).click()
     await onboarding.waitFor({ state: 'detached' })
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await openSettings(page, 'en')
     const settings = page.getByRole('dialog', { name: 'Settings' })
     await settings.getByRole('button', { name: 'Models', exact: true }).click()
     await settings.getByRole('button', { name: 'Edit openai-codex', exact: true }).click()

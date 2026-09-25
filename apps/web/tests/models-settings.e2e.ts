@@ -75,7 +75,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     await openSettings(page, 'zh')
     const dialog = page.getByRole('dialog', { name: '设置' })
     await dialog.waitFor({ timeout: 10_000 })
-    await dialog.getByRole('button', { name: '模型' }).click()
+    await dialog.getByRole('button', { name: '模型', exact: true }).click()
     await dialog.getByText('配置 API 密钥或登录账号，即可使用各提供方的模型。').waitFor({ timeout: 10_000 })
     // The dormant pi-ai adapter contributes its whole installed catalog; no
     // provider is configured yet, so the page is one add button.
@@ -342,6 +342,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     await inputs.getByRole('checkbox', { name: '文本' }).uncheck()
     await dialog.getByRole('button', { name: '保存', exact: true }).click()
     await dialog.getByLabel('模型 ID 1').waitFor({ state: 'detached', timeout: 10_000 })
+    await dialog.getByText('已保存 Acme 网关 (acme-gateway)。', { exact: true }).waitFor()
     await expect(scaffold.ctx.llm.resolveModelInfo('acme-gateway', 'acme-large')).resolves.toMatchObject({
       inputModalities: ['image'],
     })
@@ -376,7 +377,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
         await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd), MODE)
       await dialog.getByRole('button', { name: '保存', exact: true }).click()
       await types.waitFor({ state: 'detached' })
-      expect(await readFile(join(scaffold.harnessHome, 'settings.yaml'), 'utf8')).toBe(before)
+      expect(await readFile(join(scaffold.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')).toBe(before)
       await dialog.getByText('已保存 openai。', { exact: true }).waitFor()
 
       await edit.click()
@@ -387,6 +388,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
       await dialog.getByRole('button', { name: '保存', exact: true }).click()
       await types.waitFor({ state: 'detached' })
       await expect(scaffold.ctx.llm.resolveModelInfo('openai', 'gpt-6-astra')).resolves.toMatchObject({ inputModalities: ['text'] })
+      await dialog.getByText('已保存 openai。', { exact: true }).waitFor()
       await edit.click()
       await dialog.getByText('自定义设置').click()
       await dialog.getByRole('button', { name: '模型选项 1' }).click()

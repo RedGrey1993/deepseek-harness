@@ -22,6 +22,47 @@
 
 Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnpm run verify-cordis-catalog` in doc-sync; regenerate with `pnpm run gen-cordis-catalog`) — the language sides differ only in locale-specific paired document paths. Signature blocks use a `ts cordis-catalog` fence and keep the original source JSDoc; dispatch modes are defined in the [primer](../cordis-primer.zh.md#dispatch-modes), and the framework-inherited `ctx` API lives in [cordis-api/inherited.md](../cordis-api/inherited.md).
 
+<a id="ctxauthorizationcontroller--authorizationcontroller"></a>
+
+### `ctx.authorizationController` — `AuthorizationController`
+
+Host service exposing built-in provider sign-in without exposing stored tokens.
+
+```ts cordis-catalog
+/**
+ * Describe sign-in methods, stored records, and provider-native credential availability.
+ * @param provider - installed pi-ai provider identifier, never a scoped record key.
+ * @returns safe credential metadata without secret values or remote credential validation.
+ */
+@Remote async describe(provider: string): Promise<ProviderAuthorizationState>
+
+/**
+ * Run a sign-in whose private notices and prompts belong to this stream only.
+ * @param provider - installed pi-ai provider identifier.
+ * @param method - method id returned by describe.
+ * @param signal - closing the caller cancels sign-in and every pending question.
+ * @returns private interaction frames followed by the authorization outcome.
+ */
+@Remote({ mode: 'stream' }) async *login(provider: string, method: string, signal: AbortSignal): AsyncIterable<ProviderAuthorizationFrame>
+
+/**
+ * Answer one pending question; stale or foreign capabilities cannot answer it.
+ * @param attemptId - private capability from the started frame.
+ * @param promptId - identity from the matching prompt frame.
+ * @param value - typed value or the id of a declared select option.
+ */
+@Remote answer(attemptId: AuthorizationAttemptId, promptId: AuthorizationPromptId, value: string): void
+
+/**
+ * Remove only the credential owned by the selected built-in provider.
+ * @param provider - installed pi-ai provider identifier.
+ * @returns after the credential has been removed.
+ */
+@Remote async logout(provider: string): Promise<void>
+```
+
+Source: [`packages/api/settings-controller/src/authorization.ts`](../../packages/api/settings-controller/src/authorization.ts)
+
 <a id="ctxsettings--settingsforms"></a>
 
 ### `ctx.settings` — `SettingsForms`

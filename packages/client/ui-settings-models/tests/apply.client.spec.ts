@@ -47,6 +47,7 @@ async function bench(isLoopback = true, mock = RemoteMock.create().load(remoteDe
       ...services,
     },
     settings: mock.remote.settings,
+    authorization: mock.remote.authorization,
     session: { initializeDefaultModel: vi.fn(async () => ({ ok: true, value: undefined })) },
   })
   // The fixed Host facts the settings provider reads its persistence from.
