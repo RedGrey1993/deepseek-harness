@@ -140,7 +140,7 @@ function toolsOf(options: GenerateOptions): PiTool[] | undefined {
   }))
 }
 
-/** The request split into pi-ai's single `systemPrompt` slot and the history that converts to `messages`. */
+/** The request prompt and history passed to pi-ai's context normalization. */
 interface SystemPromptSplit {
   /** Text for pi-ai's `systemPrompt`; `undefined` sends no system prompt. */
   systemPrompt: string | undefined
@@ -194,8 +194,7 @@ function appendSystemOrAssistant(
   onReplayDegrade?: (reason: string) => void,
 ): boolean {
   if (message.role === 'system') {
-    // pi-ai has a single systemPrompt slot; a system message that did not
-    // supply it folds into a user message to preserve order.
+    // Additional system messages retain their position as user text in this adapter.
     messages.push({ role: 'user', content: flattenText(message), timestamp: 0 })
     return true
   }
