@@ -16,7 +16,7 @@ Keys are write-only. The page receives a redacted descriptor after saving, never
 
 Choose **Add model provider**. The card opens on **Third-party model provider**: pick a provider dsh ships with — the list shows provider ids such as `anthropic`, `openai`, `moonshotai` for Kimi, or `zai` for GLM — enter its API key, and save. The installed catalog supplies the endpoint, protocol, and model list.
 
-For `openai-codex`, open the Host through localhost, choose **Sign in with ChatGPT**, then open the displayed authorization link and follow its instructions. The card displays a verification code or an input prompt when the provider requests one. After signing in, choose **Apply** to save the provider and select a Codex model. Closing the card or choosing **Cancel** cancels the active attempt. **Sign out** removes only the Harness-owned account credential. If the route already names `apiKeyEnv`, remove that explicit reference in `settings.yaml` before using account sign-in; it otherwise overrides the stored OAuth credential.
+For providers that offer account authentication, such as `openai-codex` (ChatGPT) and `xai` (SuperGrok or X Premium), open the Host through localhost and choose **Sign in**. Follow the displayed authorization link, verification code, or input prompt. After signing in, choose **Apply** to save the provider. Closing the card or choosing **Cancel** cancels the active attempt. **Sign out** removes only the Harness-owned account credential. If the route names `apiKeyEnv`, remove that reference from the active profile's `cordis.patch.yml` and clear the API-key input before using account sign-in; an explicit API key overrides the stored account credential.
 
 ## Add a custom model API
 

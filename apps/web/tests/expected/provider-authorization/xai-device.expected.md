@@ -1,86 +1,78 @@
 - dialog "Settings":
   - navigation:
     - text: Settings
-    - button "General":
-      - img
-      - text: General
-    - button "Models":
-      - img
-      - text: Models
-    - button "Built-in plugins":
-      - img
-      - text: Built-in plugins
-    - button "Agent presets":
-      - img
-      - text: Agent presets
-    - button "Archived sessions":
-      - img
-      - text: Archived sessions
+    - button "General"
+    - button "Models"
+    - button "Built-in plugins"
+    - button "Agent presets"
   - button "Open configuration file"
-  - button "Close":
-    - img
-    - text: Close
+  - button "Close"
   - heading "Models" [level=2]
   - paragraph: Configure API keys or sign in to use models from the following providers.
   - list
-  - text: Provider
-  - combobox "Provider":
-    - option "amazon-bedrock"
-    - option "ant-ling"
-    - option "anthropic"
-    - option "azure-openai-responses"
-    - option "baseten"
-    - option "cerebras"
-    - option "cloudflare-ai-gateway"
-    - option "cloudflare-workers-ai"
-    - option "deepseek"
-    - option "fireworks"
-    - option "github-copilot"
-    - option "google"
-    - option "google-vertex"
-    - option "groq"
-    - option "huggingface"
-    - option "kimi-coding"
-    - option "minimax"
-    - option "minimax-cn"
-    - option "mistral"
-    - option "moonshotai"
-    - option "moonshotai-cn"
-    - option "nvidia"
-    - option "openai"
-    - option "openai-codex"
-    - option "opencode"
-    - option "opencode-go"
-    - option "openrouter"
-    - option "qwen-token-plan"
-    - option "qwen-token-plan-cn"
-    - option "qwen-token-plan-individual"
-    - option "together"
-    - option "vercel-ai-gateway"
-    - option "xai" [selected]
-    - option "xiaomi"
-    - option "xiaomi-token-plan-ams"
-    - option "xiaomi-token-plan-cn"
-    - option "xiaomi-token-plan-sgp"
-    - option "zai"
-    - option "zai-coding-cn"
-  - text: Provider account
-  - status: Updating account…
-  - paragraph: Sign in with SuperGrok or X Premium
-  - button "Refresh sign-in status" [disabled]
-  - button "Sign in" [disabled]
-  - button "Cancel"
-  - status:
-    - paragraph: Enter this code on the verification page to finish signing in.
-    - link "Open authorization page":
-      - /url: https://auth.x.ai/device?user_code=WXYZ-1234
-    - text: https://auth.x.ai/device?user_code=WXYZ-1234
-    - paragraph:
-      - text: "Verification code:"
-      - code: WXYZ-1234
-  - text: API key
-  - textbox "API key":
-    - /placeholder: Enter an API key, or leave blank to use environment authentication
-  - group: Customized settings
-  - button "Cancel"
-  - button "Apply"
+  - tablist "How to add":
+    - tab "Third-party model provider" [selected]
+    - tab "Custom model API"
+  - paragraph: Pick OpenAI, Anthropic, Kimi, or another provider from the built-in catalog and enter its API key.
+  - tabpanel "Third-party model provider":
+    - text: Provider
+    - combobox "Provider":
+      - option "amazon-bedrock"
+      - option "ant-ling"
+      - option "anthropic"
+      - option "azure-openai-responses"
+      - option "baseten"
+      - option "cerebras"
+      - option "cloudflare-ai-gateway"
+      - option "cloudflare-workers-ai"
+      - option "deepseek"
+      - option "fireworks"
+      - option "github-copilot"
+      - option "google"
+      - option "google-vertex"
+      - option "groq"
+      - option "huggingface"
+      - option "kimi-coding"
+      - option "minimax"
+      - option "minimax-cn"
+      - option "mistral"
+      - option "moonshotai"
+      - option "moonshotai-cn"
+      - option "nvidia"
+      - option "openai"
+      - option "openai-codex"
+      - option "opencode"
+      - option "opencode-go"
+      - option "openrouter"
+      - option "qwen-token-plan"
+      - option "qwen-token-plan-cn"
+      - option "qwen-token-plan-individual"
+      - option "together"
+      - option "vercel-ai-gateway"
+      - option "xai" [selected]
+      - option "xiaomi"
+      - option "xiaomi-token-plan-ams"
+      - option "xiaomi-token-plan-cn"
+      - option "xiaomi-token-plan-sgp"
+      - option "zai"
+      - option "zai-coding-cn"
+    - text: Provider account
+    - status: Updating account…
+    - paragraph: Sign in with SuperGrok or X Premium
+    - button "Refresh sign-in status" [disabled]
+    - button "Sign in" [disabled]
+    - button "Cancel"
+    - status:
+      - paragraph: Enter this code on the verification page to finish signing in.
+      - link "Open authorization page":
+        - /url: https://auth.x.ai/device?user_code=WXYZ-1234
+      - text: https://auth.x.ai/device?user_code=WXYZ-1234
+      - paragraph:
+        - text: "Verification code:"
+        - code: WXYZ-1234
+    - text: API key
+    - textbox "API key":
+      - /placeholder: Enter an API key, or leave blank to use environment authentication
+    - group: Customized settings
+    - button "Cancel"
+    - button "Apply"

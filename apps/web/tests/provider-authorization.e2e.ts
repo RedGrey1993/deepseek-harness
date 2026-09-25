@@ -9,7 +9,7 @@ import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden, launchWebScaffold,
   watchConsole, webSnapshotMode, type WebScaffold,
 } from './scaffold.ts'
-import { newEnglishPage, saveFailureShot } from './support.ts'
+import { newEnglishPage, openSettings, saveFailureShot } from './support.ts'
 import {
   installXaiOAuthFixture, XAI_ACCESS_TOKEN, XAI_USER_CODE, XAI_VERIFICATION_URL,
 } from './xai-oauth-fixture.ts'
@@ -54,10 +54,10 @@ describe.skipIf(MODE === 'record')('web e2e: provider capabilities drive account
     const host = scaffold
     const auth = external
     onTestFailed(() => saveFailureShot(page, 'web-e2e-provider-authorization'))
-    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await openSettings(page, 'en')
     const settings = page.getByRole('dialog', { name: 'Settings' })
     await settings.getByRole('button', { name: 'Models', exact: true }).click()
-    const add = settings.getByRole('button', { name: 'Add provider', exact: true })
+    const add = settings.getByRole('button', { name: 'Add model provider', exact: true })
     await expect.poll(() => add.isEnabled()).toBe(true)
     await add.click()
     const provider = settings.getByLabel('Provider', { exact: true })
@@ -92,7 +92,7 @@ describe.skipIf(MODE === 'record')('web e2e: provider capabilities drive account
     expect(await page.content()).not.toContain('fixture-private-device-code')
     await settings.getByRole('button', { name: 'Apply', exact: true }).click()
     await settings.getByRole('img', { name: 'Signed in', exact: true }).waitFor()
-    const document = await readFile(join(host.harnessHome, 'settings.yaml'), 'utf8')
+    const document = await readFile(join(host.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')
     expect(document).toContain('xai: {}')
     expect(document).not.toContain('XAI_API_KEY')
     await settings.getByRole('button', { name: 'Edit xai', exact: true }).click()
@@ -100,7 +100,7 @@ describe.skipIf(MODE === 'record')('web e2e: provider capabilities drive account
     await settings.getByText('Not signed in', { exact: true }).waitFor()
     await settings.getByRole('img', { name: 'Not signed in', exact: true }).waitFor()
     expect(await readFile(credentialFile, 'utf8')).not.toContain(XAI_ACCESS_TOKEN)
-    expect(await readFile(join(host.harnessHome, 'settings.yaml'), 'utf8')).toBe(document)
+    expect(await readFile(join(host.harnessHome, 'profiles', 'scaffold', 'cordis.patch.yml'), 'utf8')).toBe(document)
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'xai-signed-out.expected.md'),
       await captureStableAria(page, '[role="dialog"]', host.workspaceCwd), MODE)
 

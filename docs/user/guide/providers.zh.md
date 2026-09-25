@@ -16,7 +16,7 @@
 
 选择**添加模型提供商**。卡片默认打开在**第三方模型提供商**：选取 dsh 自带的提供商——列表显示的是提供商 id，例如 `anthropic`、`openai`、Kimi 对应的 `moonshotai`、GLM 对应的 `zai`——输入其 API 密钥并保存。已安装目录会提供端点、协议和模型列表。
 
-通过 OAuth 登录的提供商（例如 Codex）暂不支持。
+对于提供账号认证的提供商，例如 `openai-codex`（ChatGPT）和 `xai`（SuperGrok 或 X Premium），请通过 localhost 访问 Host，并选择**登录账号**。按照显示的授权链接、验证码或输入提示完成登录，再选择**保存**以保存提供商。关闭卡片或选择**取消**会取消当前登录。**退出登录**只移除 Harness 保存的账号凭据。如果路由指定了 `apiKeyEnv`，请从当前 profile 的 `cordis.patch.yml` 中移除该引用，并清空 API 密钥输入框后再使用账号登录；显式 API 密钥会覆盖已存储的账号凭据。
 
 ## 添加自定义模型 API
 

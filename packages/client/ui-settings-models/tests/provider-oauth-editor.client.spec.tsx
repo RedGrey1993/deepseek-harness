@@ -49,6 +49,7 @@ async function mountEditor(options: {
   const profile = options.apiKeyEnv === undefined ? {} : { apiKeyEnv: options.apiKeyEnv }
   const namespace: SettingsNamespaceView = {
     ns: 'llm-pi-ai',
+    autoGenerate: true,
     schema: JSON.parse(JSON.stringify(profileSchema.toJSON())) as JsonValue,
     value: { providers: { [provider]: profile } },
     user: { providers: { [provider]: profile } },

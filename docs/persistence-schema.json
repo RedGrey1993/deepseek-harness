@@ -5922,7 +5922,7 @@
       "kind": "event",
       "event": "compaction/summary",
       "surface": false,
-      "digest": "e2f9a41e0989f54ed8cee80f8db2bcf9d60a5c810dc9d45b83fa050b9dce7602",
+      "digest": "3ee7d7f3f55d79f601b568476209f30730d28d7c6e9cf0d4550aa59aee3ed084",
       "schema": {
         "root": 0,
         "nodes": [
@@ -6021,6 +6021,11 @@
                 "name": "summary",
                 "type": 6,
                 "optional": false
+              },
+              {
+                "name": "summaryInstruction",
+                "type": 3,
+                "optional": true
               },
               {
                 "name": "usage",
@@ -6433,6 +6438,11 @@
                 "name": "summary",
                 "type": 6,
                 "optional": false
+              },
+              {
+                "name": "summaryInstruction",
+                "type": 3,
+                "optional": true
               },
               {
                 "name": "usage",
@@ -22638,6 +22648,11 @@
       ]
     },
     {
+      "digest": "387dc6ed2e04a41180d1742fffc4fc7a2022deee585a3f8e2013a1bfdfa2e3a5",
+      "names": [],
+      "sources": []
+    },
+    {
       "digest": "390eed1028aba02774f14408647acec10ec5516e97d4f15ecde2b9989d5a69f2",
       "names": [
         "packages/feedback/message-feedback/src/types.ts#MessageFeedbackRating"
@@ -22736,6 +22751,11 @@
       "sources": [
         "packages/compaction/compaction/src/types.ts:24"
       ]
+    },
+    {
+      "digest": "3ee7d7f3f55d79f601b568476209f30730d28d7c6e9cf0d4550aa59aee3ed084",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "3ee93b06f3a125850337602bcdf155d2538c43a5c944ec55b1b3c365152d6796",
@@ -23105,11 +23125,6 @@
       "sources": []
     },
     {
-      "digest": "576a2de8355eb09850963ff5953420b172e274d9283666eb7d889097db120796",
-      "names": [],
-      "sources": []
-    },
-    {
       "digest": "5776e5553ff2dfe3f5bc202dbb1e7c9f93e35a531aebb7764c23b2b6153b2ccc",
       "names": [],
       "sources": []
@@ -23219,8 +23234,13 @@
       "digest": "5dd766ccd1702a1142ad8b4bd44f2242f8e8a6752669ad3de0a5d224329b1438",
       "names": [],
       "sources": [
-        "packages/compaction/compaction/src/types.ts:82"
+        "packages/compaction/compaction/src/types.ts:84"
       ]
+    },
+    {
+      "digest": "5e5fa689259996dbd5f69d3ca2403b5183ca86dcb8a2bc054b1f7316fd53f743",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "5e6db6e24948d4a853c71cb9fabd252ad051ce93d4672c1266cf837c1c17b84e",
@@ -24019,11 +24039,6 @@
       "sources": []
     },
     {
-      "digest": "9947aa5938fe19a895298da412917acbf9ffb5093a73ab8baa257e6ae9e63a07",
-      "names": [],
-      "sources": []
-    },
-    {
       "digest": "998f22585a5d73ec005365e203f07fc3b3a029e82323fdda3fd7f13b0a9639d0",
       "names": [],
       "sources": []
@@ -24098,7 +24113,7 @@
       "names": [],
       "sources": [
         "packages/compaction/compaction/src/types.ts:38",
-        "packages/compaction/compaction/src/types.ts:84"
+        "packages/compaction/compaction/src/types.ts:86"
       ]
     },
     {
@@ -24265,11 +24280,6 @@
       "sources": [
         "packages/schedule/schedule/src/types.ts:173"
       ]
-    },
-    {
-      "digest": "a99ec0993c62c058e50af9f68922202a3b54f5e259bc2abf1915a73381d2316d",
-      "names": [],
-      "sources": []
     },
     {
       "digest": "a99f76fd149051c363f960bfeeb5b9509587ecaf7591a42797e4bfe810d8987a",
@@ -24769,7 +24779,7 @@
       "digest": "ca59530d1a4f3e191b4032bc4a20eded0d827db8b5a7efb27b3af9e9b456c6f2",
       "names": [],
       "sources": [
-        "packages/compaction/compaction/src/types.ts:72"
+        "packages/compaction/compaction/src/types.ts:74"
       ]
     },
     {
@@ -24994,11 +25004,6 @@
       "sources": []
     },
     {
-      "digest": "e2f9a41e0989f54ed8cee80f8db2bcf9d60a5c810dc9d45b83fa050b9dce7602",
-      "names": [],
-      "sources": []
-    },
-    {
       "digest": "e308ccf867a5398e316e0af8cb6ce238a8d33a63b9b384c8250a686786285f72",
       "names": [],
       "sources": []
@@ -25152,6 +25157,11 @@
       "sources": [
         "packages/schedule/schedule/src/types.ts:223"
       ]
+    },
+    {
+      "digest": "eebc45083dae4bb3234b549d82f05f31a596ba0915317a0104731db31afd4e59",
+      "names": [],
+      "sources": []
     },
     {
       "digest": "eefbea819caeeea91ccb02dfafc16c68dd7f961cf9c1b2be25a2084509cf5c5a",
