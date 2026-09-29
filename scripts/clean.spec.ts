@@ -82,6 +82,33 @@ describe('RepositoryCleaner', () => {
     expect(existsSync(join(root, 'native/system/tsconfig.tsbuildinfo'))).toBe(false)
   })
 
+  it('removes declaration-only *-types outputs as their own output root', async () => {
+    const root = fixture()
+    write(join(root, 'tsconfig.json'), JSON.stringify({ files: [], references: [{ path: './fixtures/keyboard' }] }))
+    write(join(root, 'fixtures/keyboard/tsconfig.json'), JSON.stringify({
+      compilerOptions: { composite: true, outDir: 'lib/desktop-keyboard-test-types', emitDeclarationOnly: true },
+      include: ['src'],
+    }))
+    write(join(root, 'fixtures/keyboard/src/index.ts'), 'export {}\n')
+    write(join(root, 'fixtures/keyboard/lib/desktop-keyboard-test-types/apps/desktop/keyboard.d.ts'))
+    write(join(root, 'fixtures/keyboard/lib/sibling-bundle.js'))
+
+    await new RepositoryCleaner(root).clean()
+
+    expect(existsSync(join(root, 'fixtures/keyboard/lib/desktop-keyboard-test-types'))).toBe(false)
+    expect(existsSync(join(root, 'fixtures/keyboard/lib/sibling-bundle.js'))).toBe(true)
+    expect(existsSync(join(root, 'fixtures/keyboard/src/index.ts'))).toBe(true)
+  })
+
+  it('refuses outDir forms outside the known output-root shapes', async () => {
+    const root = fixture()
+    addProject(root, 'products/shell', 'dist')
+    write(join(root, 'products/shell/dist/index.js'))
+
+    await expect(new RepositoryCleaner(root).clean()).rejects.toThrow('expected TypeScript outDir')
+    expect(existsSync(join(root, 'products/shell/dist/index.js'))).toBe(true)
+  })
+
   it('refuses project outputs reached through a symlink outside the repository', async () => {
     const root = fixture()
     const externalProject = fixture()
